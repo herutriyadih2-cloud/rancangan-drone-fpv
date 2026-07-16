@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUADCRAFT F1 — Penjelasan Desain</title>
+<meta name="description" content="Penjelasan lengkap desain QUADCRAFT F1: cinewhoop ducted 4S dengan kamera menunduk dan Raspberry Pi untuk rekam. Anatomi komponen, model 3D interaktif, spesifikasi, dan anggaran.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+  img, canvas, iframe { display: block; max-width: 100%; }
+  ol, ul { list-style: none; }
+  html { color-scheme: light dark; }
+
+  :root {
+    --ground:#0E1216; --surface:#171C22; --surface-2:#1E242B; --line:#2C333B;
+    --ink:#E6EAEE; --ink-2:#A8B2BC; --mute:#78838E; --accent:#F2662C;
+    --copper:#C87B3A; --pi:#4FB286; --ok:#4FB286; --warn:#E0B341; --crit:#E2574C;
+    --display:"Bahnschrift","Oswald","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+    --body:"Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+    --r:3px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --ground:#F1F0ED; --surface:#FFF; --surface-2:#F7F6F3; --line:#D6D6D2;
+      --ink:#15191D; --ink-2:#414951; --mute:#6E7780; --accent:#D24A11; }
+  }
+  :root[data-theme="dark"] { --ground:#0E1216; --surface:#171C22; --surface-2:#1E242B; --line:#2C333B;
+    --ink:#E6EAEE; --ink-2:#A8B2BC; --mute:#78838E; --accent:#F2662C; }
+  :root[data-theme="light"] { --ground:#F1F0ED; --surface:#FFF; --surface-2:#F7F6F3; --line:#D6D6D2;
+    --ink:#15191D; --ink-2:#414951; --mute:#6E7780; --accent:#D24A11; }
+
+  body { background:var(--ground); color:var(--ink); font-family:var(--body);
+    font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 24px 96px; }
+
+  header.top { border-bottom:1px solid var(--line); padding:30px 0 24px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--display); font-weight:700; font-size:clamp(30px,5vw,54px);
+    line-height:1.0; margin-top:6px; letter-spacing:0.01em; text-wrap:balance; }
+  h1 em { font-style:normal; color:var(--accent); }
+  .sub { color:var(--ink-2); max-width:64ch; margin-top:12px; }
+  .nav { display:flex; gap:16px; margin-top:16px; font-family:var(--mono); font-size:12px; flex-wrap:wrap; }
+  .nav a { color:var(--mute); text-decoration:none; border-bottom:1px solid transparent; }
+  .nav a:hover { color:var(--accent); border-color:var(--accent); }
+
+  section { padding-top:52px; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--line);
+    padding-bottom:10px; margin-bottom:24px; }
+  .sec-head .tag { font-family:var(--mono); font-size:11px; letter-spacing:0.12em;
+    color:var(--mute); text-transform:uppercase; white-space:nowrap; }
+  h2 { font-family:var(--display); font-weight:700; font-size:clamp(22px,2.6vw,30px); letter-spacing:0.01em; }
+  h2 em { font-style:normal; color:var(--accent); }
+  p.lede { color:var(--ink-2); max-width:74ch; margin-bottom:20px; }
+  strong { color:var(--ink); font-weight:600; }
+
+  /* ---- placeholder / hero gambar ---- */
+  .heroimg { margin-top:26px; }
+  .imgslot {
+    position:relative; border:2px dashed var(--line); border-radius:var(--r);
+    background:
+      repeating-linear-gradient(45deg, transparent, transparent 14px, rgba(242,102,44,0.03) 14px, rgba(242,102,44,0.03) 28px),
+      var(--surface);
+    aspect-ratio:16/10; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:24px; gap:10px; overflow:hidden;
+  }
+  .imgslot img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#0A0D10; }
+  .imgslot .badge { font-family:var(--mono); font-size:11px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--accent); }
+  .imgslot h3 { font-family:var(--display); font-size:22px; font-weight:600; color:var(--ink); }
+  .imgslot p { font-size:13.5px; color:var(--ink-2); max-width:52ch; }
+  .imgslot code { font-family:var(--mono); font-size:12.5px; color:var(--accent);
+    background:var(--surface-2); border:1px solid var(--line); padding:3px 8px; border-radius:2px;
+    display:inline-block; margin-top:4px; word-break:break-all; }
+  .cap { font-family:var(--mono); font-size:11px; color:var(--mute); margin-top:8px; text-align:center; }
+
+  /* ---- anatomi ---- */
+  .anat { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
+  .part { background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+    padding:16px; border-left:2px solid var(--accent); }
+  .part.copper { border-left-color:var(--copper); }
+  .part.pi { border-left-color:var(--pi); }
+  .part .kv { font-family:var(--mono); font-size:10px; letter-spacing:0.11em; text-transform:uppercase;
+    color:var(--mute); margin-bottom:5px; }
+  .part h3 { font-family:var(--display); font-size:17px; font-weight:600; margin-bottom:5px; letter-spacing:0.01em; }
+  .part p { font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .part .note { display:block; margin-top:7px; font-size:12px; color:var(--warn); }
+
+  /* ---- viewer embed ---- */
+  .frame3d { border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
+    background:var(--surface); aspect-ratio:16/10; margin-top:4px; }
+  .frame3d iframe { width:100%; height:100%; border:0; }
+
+  /* ---- specs ---- */
+  .specs { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+  .specs div { background:var(--surface); padding:13px 15px; }
+  .specs .k { font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--mute); }
+  .specs .v { font-family:var(--display); font-size:24px; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .specs .v small { font-size:12px; color:var(--ink-2); font-weight:400; }
+
+  .note { background:var(--surface); border:1px solid var(--line); border-left:2px solid var(--accent);
+    border-radius:var(--r); padding:14px 17px; margin-top:18px; font-size:14px; color:var(--ink-2); }
+  .note.warn { border-left-color:var(--warn); }
+  .note b { color:var(--ink); }
+
+  .tscroll { overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; min-width:520px; }
+  thead th { font-family:var(--mono); font-size:10px; letter-spacing:0.11em; text-transform:uppercase;
+    color:var(--mute); text-align:left; padding:10px 14px; background:var(--surface-2); border-bottom:1px solid var(--line); }
+  tbody td { padding:9px 14px; border-bottom:1px solid var(--line); color:var(--ink-2); }
+  tbody tr:last-child td { border-bottom:0; }
+  td.name { color:var(--ink); font-weight:600; }
+  td.n, th.n { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tfoot td { padding:11px 14px; border-top:2px solid var(--accent); font-family:var(--mono); font-weight:700;
+    color:var(--ink); background:var(--surface-2); font-variant-numeric:tabular-nums; }
+
+  footer { margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; color:var(--mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  footer a { color:var(--accent); text-decoration:none; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:99999;background-repeat:repeat;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27250%27%3E%3Ctext%20x%3D%2714%27%20y%3D%27135%27%20transform%3D%27rotate%28-24%20200%20125%29%27%20fill%3D%27white%27%20fill-opacity%3D%270.055%27%20font-family%3D%27monospace%27%20font-size%3D%2715%27%20font-weight%3D%27bold%27%3ECONFIDENTIAL%20%20-%20%20%28c%29%20HERU%20TRIYADI%202026%3C/text%3E%3C/svg%3E');"></div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Penjelasan Desain · Rev A</div>
+    <h1>QUADCRAFT <em>F1</em></h1>
+    <p class="sub">Cinewhoop ducted 4S dengan kamera menunduk dan Raspberry Pi untuk merekam — drone serbaguna untuk dokumentasi &amp; inspeksi visual sederhana. Halaman ini menjelaskan setiap bagiannya, lengkap dengan model 3D interaktif.</p>
+    <div class="nav">
+      <a href="index.html">Rancangan 5" (freestyle)</a>
+      <a href="micro.html">Model 3D interaktif</a>
+      <a href="#anatomi">Anatomi komponen</a>
+      <a href="#anggaran">Anggaran</a>
+    </div>
+  </header>
+
+  <!-- ============ HERO: GAMBAR ASLI ============ -->
+  <section style="padding-top:30px;">
+    <div class="heroimg">
+      <div class="imgslot" id="heroSlot">
+        <!-- Begitu gambar disimpan sebagai C:\...\web\gambar-desain.jpg, baris <img> di bawah aktif -->
+        <img src="desain-hemat.jpg" alt="Desain QUADCRAFT F1" onerror="this.style.display='none';document.getElementById('slotHint').style.display='flex';">
+        <div id="slotHint" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+          <div class="badge">Slot Gambar Asli Kamu</div>
+          <h3>Taruh render QUADCRAFT F1 di sini</h3>
+          <p>Simpan gambar desainmu (yang foto-realistis itu) ke folder <code>web</code> dengan nama persis:</p>
+          <code>desain-hemat.jpg</code>
+          <p style="margin-top:6px;color:var(--mute);font-size:12.5px;">Lalu muat ulang halaman ini — gambarmu otomatis muncul di sini sebagai sampul. (Bisa juga .png; beri tahu saya kalau begitu.)</p>
+        </div>
+      </div>
+      <div class="cap">Gambar hero — render desain buatanmu sendiri (foto-realistis, diam). Model interaktif ada di bawah.</div>
+    </div>
+
+    <div class="note" style="margin-top:22px;">
+      <b>Kenapa dua jenis gambar?</b> Gambar di atas (buatanmu) <b>foto-realistis tapi diam</b> — sempurna untuk sampul yang memukau. Model 3D di bawah <b>sederhana tapi hidup</b> — bisa diputar &amp; diurai untuk menjelaskan isinya. Keduanya saling melengkapi, bukan bersaing.
+    </div>
+  </section>
+
+  <!-- ============ MODEL 3D ============ -->
+  <section id="model3d">
+    <div class="sec-head"><span class="tag">01 / Model 3D</span><h2>Putar &amp; urai — lihat isinya</h2></div>
+    <p class="lede">Model interaktif desain kita: kamera sudah dipindah ke <strong>bawah</strong> (menunduk untuk merekam) dan <strong>Raspberry Pi Zero 2 W</strong> ditambahkan di atas AIO board. Seret untuk memutar, tekan <strong>Urai</strong> untuk memisahkan, klik komponen untuk menyorot.</p>
+    <div class="frame3d">
+      <iframe src="micro.html" title="Model 3D QUADCRAFT F1" loading="lazy"></iframe>
+    </div>
+  </section>
+
+  <!-- ============ ANATOMI ============ -->
+  <section id="anatomi">
+    <div class="sec-head"><span class="tag">02 / Anatomi</span><h2>Setiap komponen, dijelaskan</h2></div>
+    <p class="lede">Sesuai label pada desain QUADCRAFT F1-mu — dengan penjelasan jujur fungsi tiap bagian, dan catatan di tempat yang perlu diluruskan.</p>
+    <figure style="margin:0 0 22px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#0A0D10;">
+      <img src="desain-hemat-anatomi.jpg" alt="Anatomi QUADCRAFT F1" style="width:100%;display:block;">
+      <figcaption style="font-family:var(--mono);font-size:11px;color:var(--mute);padding:8px 12px;border-top:1px solid var(--line);">Diagram anatomi QUADCRAFT F1 — render buatanmu sendiri. Penjelasan tiap komponen ada di bawah.</figcaption>
+    </figure>
+    <div class="anat">
+      <div class="part">
+        <div class="kv">Unit Saluran Kipas</div>
+        <h3>Duct pelindung (×4)</h3>
+        <p>Cincin di sekeliling tiap baling-baling. Dua fungsi: <strong>melindungi</strong> (aman menabrak dinding &amp; orang, bisa terbang indoor) dan <strong>menambah efisiensi dorong</strong> pada kecepatan rendah. Inilah yang membuatnya "cinewhoop", bukan freestyle.</p>
+      </div>
+      <div class="part">
+        <div class="kv">Unit Propulsi</div>
+        <h3>Motor brushless + bilah karbon</h3>
+        <p>Motor memutar bilah karbon kaku di dalam duct. Hub tembaga pada desainmu adalah sentuhan estetік; fungsinya sama — mengubah listrik jadi dorongan.</p>
+      </div>
+      <div class="part">
+        <div class="kv">Modul Kontrol Utama</div>
+        <h3>Flight Controller F7 + ESC 4-in-1 35 A</h3>
+        <p>Otak penerbangan. F7 membaca gyro &amp; barometer, menjalankan Betaflight, dan menyuruh ESC mengatur keempat motor ribuan kali per detik. ESC 35 A pas untuk motor cinewhoop yang lebih kecil.</p>
+      </div>
+      <div class="part copper">
+        <div class="kv">Unit Termal &amp; Antena</div>
+        <h3>Heatsink tembaga + antena terintegrasi</h3>
+        <p>Pendingin untuk prosesor &amp; ESC agar tak <em>overheat</em> saat hover lama. Antena dipole menyatu untuk jangkauan sinyal. Warna tembaganya jadi ciri khas visual desainmu.</p>
+      </div>
+      <div class="part">
+        <div class="kv">Baterai Inti</div>
+        <h3>LiPo 4S</h3>
+        <p>Empat sel (14,8 V nominal). Untuk cinewhoop, 4S memberi keseimbangan tenaga &amp; bobot yang pas — tidak seliar 6S, cocok untuk terbang halus &amp; sinematik.</p>
+      </div>
+      <div class="part pi">
+        <div class="kv">Companion — tambahan kita</div>
+        <h3>Raspberry Pi Zero 2 W</h3>
+        <p>Otak <strong>kedua</strong>, di atas AIO board. Tugasnya <strong>merekam</strong> (dan nanti bisa deteksi objek). Ini komponen yang mewujudkan "sensor visi" pada desainmu — karena FC F7 sendiri tidak bisa memproses gambar.</p>
+        <span class="note">Penting: Pi TIDAK menerbangkan drone. FC yang terbangkan; Pi hanya melihat &amp; merekam.</span>
+      </div>
+      <div class="part pi">
+        <div class="kv">Sistem Visi — dipindah</div>
+        <h3>Kamera menunduk (rekam)</h3>
+        <p>Sesuai permintaanmu, kamera perekam dipindah ke <strong>bawah, menghadap tanah</strong> — untuk mendokumentasikan objek/permukaan di bawah drone. Kamera FPV depan tetap untuk mengemudi.</p>
+      </div>
+      <div class="part">
+        <div class="kv">Konektivitas</div>
+        <h3>Port USB-C + IMU &amp; barometer</h3>
+        <p>USB-C untuk konfigurasi &amp; isi daya Pi. IMU (gyro+akselerometer) menjaga keseimbangan; barometer membantu menahan ketinggian.</p>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <b>Dua hal jujur soal desainmu:</b> (1) label <b>"Sensor Visi"</b> hanya nyata bila Raspberry Pi terpasang — itu sebabnya kita menambahkannya. (2) Sebelumnya ada teks teracak di gambar ("Bllah Karbon", "PZOTOKOL"); kalau gambar itu dipakai sebagai sampul, teksnya perlu dirapikan agar tidak terkesan buatan AI mentah.
+    </div>
+  </section>
+
+  <!-- ============ SPESIFIKASI ============ -->
+  <section id="spek">
+    <div class="sec-head"><span class="tag">03 / Spesifikasi</span><h2>Angka ringkas</h2></div>
+    <div class="specs">
+      <div><div class="k">Kelas</div><div class="v">Cinewhoop<small> ducted</small></div></div>
+      <div><div class="k">Baterai</div><div class="v">4S<small> LiPo</small></div></div>
+      <div><div class="k">FC</div><div class="v">F7<small> · Betaflight</small></div></div>
+      <div><div class="k">ESC</div><div class="v">35<small> A · 4-in-1</small></div></div>
+      <div><div class="k">Companion</div><div class="v">Pi<small> Zero 2 W</small></div></div>
+      <div><div class="k">Kamera rekam</div><div class="v">↓<small> menunduk</small></div></div>
+    </div>
+    <div class="note">
+      <b>Ini build menengah (kompromi), bukan yang termurah.</b> Ducted + kamera + Raspberry Pi membuatnya lebih mumpuni daripada whoop biasa, tapi juga lebih mahal dari target Rp 2,5 jt. Perkiraan realistis: <b>Rp 3,5–4 juta</b>. Semua harga masih estimasi — perlu diverifikasi ke marketplace.
+    </div>
+  </section>
+
+  <!-- ============ ANGGARAN ============ -->
+  <section id="anggaran">
+    <div class="sec-head"><span class="tag">04 / Anggaran</span><h2>Perkiraan biaya (estimasi)</h2></div>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Komponen</th><th>Catatan</th><th class="n">Rp</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Frame cinewhoop ducted 3"</td><td>Duct pelindung + bodi</td><td class="n">300 rb</td></tr>
+          <tr><td class="name">Stack F7 + ESC 35 A</td><td>FC + ESC 4-in-1 sepaket</td><td class="n">750 rb</td></tr>
+          <tr><td class="name">Motor + bilah karbon</td><td>4 motor cinewhoop + propeller</td><td class="n">550 rb</td></tr>
+          <tr><td class="name">Kamera FPV + VTX</td><td>Untuk mengemudi</td><td class="n">450 rb</td></tr>
+          <tr><td class="name">Baterai 4S (×2)</td><td>Plus charger</td><td class="n">650 rb</td></tr>
+          <tr><td class="name">Raspberry Pi Zero 2 W + kamera</td><td>Companion untuk rekam</td><td class="n">400 rb</td></tr>
+          <tr><td class="name">Radio + penerima ELRS</td><td>Kendali</td><td class="n">1 100 rb</td></tr>
+          <tr><td class="name">Barang kecil</td><td>Kabel, konektor, SD card</td><td class="n">200 rb</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="2">Perkiraan total (tanpa goggles)</td><td class="n">± 4,4 jt</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="note warn">
+      <b>Angka di atas estimasi kasar saya, belum dicek ke marketplace.</b> Mau saya carikan harga terkini lewat web supaya jadi nyata? Dan goggles belum masuk — kalau perlu, itu tambahan Rp 1–3,5 jt tergantung pilihan.
+    </div>
+  </section>
+
+  <footer>
+    <span>QUADCRAFT F1 · cinewhoop ducted 4S + Pi · penjelasan desain</span>
+    <span><a href="index.html">← Rancangan 5"</a> · <a href="micro.html">Model 3D</a></span>
+  </footer>
+</div>
+</body>
+</html>

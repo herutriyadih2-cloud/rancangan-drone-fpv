@@ -1,0 +1,2333 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rancangan Desain 3D Drone Lengkap</title>
+<meta name="description" content="Rancangan lengkap quadcopter FPV freestyle 5 inci: model 3D interaktif, daftar belanja, kode firmware, simulator PID, dan anggaran.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+  img, canvas, svg { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; }
+  table { border-collapse: collapse; }
+  ol, ul { list-style: none; }
+  html { color-scheme: light dark; }
+</style>
+</head>
+<body>
+<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:99999;background-repeat:repeat;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27250%27%3E%3Ctext%20x%3D%2714%27%20y%3D%27135%27%20transform%3D%27rotate%28-24%20200%20125%29%27%20fill%3D%27white%27%20fill-opacity%3D%270.055%27%20font-family%3D%27monospace%27%20font-size%3D%2715%27%20font-weight%3D%27bold%27%3ECONFIDENTIAL%20%20-%20%20%28c%29%20HERU%20TRIYADI%202026%3C/text%3E%3C/svg%3E');"></div>
+
+
+<style>
+  :root {
+    --ground: #0E1216;
+    --surface: #171C22;
+    --surface-2: #1E242B;
+    --carbon: #23282E;
+    --line: #2C333B;
+    --ink: #E6EAEE;
+    --ink-2: #A8B2BC;
+    --mute: #78838E;
+    --accent: #F2662C;
+    --accent-soft: #FF8A55;
+    --accent-dim: rgba(242, 102, 44, 0.14);
+    --ok: #4FB286;
+    --warn: #E0B341;
+    --crit: #E2574C;
+    --code-bg: #12171C;
+
+    --display: "Bahnschrift", "Oswald", "Avenir Next Condensed", "HelveticaNeue-CondensedBold", "Arial Narrow", system-ui, sans-serif;
+    --body: "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+    --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace;
+
+    --r: 3px;
+    --maxw: 1240px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #F1F0ED;
+      --surface: #FFFFFF;
+      --surface-2: #F7F6F3;
+      --carbon: #E2E2DF;
+      --line: #D6D6D2;
+      --ink: #15191D;
+      --ink-2: #414951;
+      --mute: #6E7780;
+      --accent: #D24A11;
+      --accent-soft: #B33F0D;
+      --accent-dim: rgba(210, 74, 17, 0.10);
+      --code-bg: #14181C;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #F1F0ED;
+    --surface: #FFFFFF;
+    --surface-2: #F7F6F3;
+    --carbon: #E2E2DF;
+    --line: #D6D6D2;
+    --ink: #15191D;
+    --ink-2: #414951;
+    --mute: #6E7780;
+    --accent: #D24A11;
+    --accent-soft: #B33F0D;
+    --accent-dim: rgba(210, 74, 17, 0.10);
+    --code-bg: #14181C;
+  }
+  :root[data-theme="dark"] {
+    --ground: #0E1216;
+    --surface: #171C22;
+    --surface-2: #1E242B;
+    --carbon: #23282E;
+    --line: #2C333B;
+    --ink: #E6EAEE;
+    --ink-2: #A8B2BC;
+    --mute: #78838E;
+    --accent: #F2662C;
+    --accent-soft: #FF8A55;
+    --accent-dim: rgba(242, 102, 44, 0.14);
+    --code-bg: #12171C;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 0 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 4.6vw, 52px);
+    line-height: 1.02;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    margin-top: 6px;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .sub {
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin-top: 10px;
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    text-align: right;
+    line-height: 1.9;
+    border-left: 1px solid var(--line);
+    padding-left: 16px;
+  }
+  .stamp b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- Section scaffolding ---------- */
+  section { padding-top: 56px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+    margin-bottom: 26px;
+  }
+  .sec-head .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(22px, 2.6vw, 30px);
+    letter-spacing: 0.01em;
+  }
+  h3 {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  p { max-width: 72ch; }
+  section > p, .prose p { color: var(--ink-2); }
+  .prose p + p { margin-top: 12px; }
+  strong { color: var(--ink); font-weight: 600; }
+  a { color: var(--accent); }
+
+  /* ---------- Viewer ---------- */
+  .studio {
+    display: grid;
+    grid-template-columns: minmax(0, 1.72fr) minmax(260px, 1fr);
+    gap: 20px;
+    margin-top: 28px;
+  }
+  .stage {
+    position: relative;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 42%, rgba(242,102,44,0.07), transparent 70%),
+      var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+    min-height: 460px;
+    aspect-ratio: 4 / 3;
+    touch-action: none;
+    cursor: grab;
+  }
+  .stage:active { cursor: grabbing; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+
+  .hud {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--mute);
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .hud b { color: var(--accent); font-weight: 600; }
+  .hint {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--mute);
+    pointer-events: none;
+  }
+
+  .label {
+    position: absolute;
+    left: 0; top: 0;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    background: var(--surface);   /* fallback: browser lawas tanpa color-mix() */
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--accent);
+    padding: 2px 7px;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .label.on { opacity: 1; }
+
+  /* ---------- Control rail ---------- */
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 14px;
+  }
+  .panel h4 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 10px;
+  }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  button {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 6px 9px;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s, border-color 0.14s;
+  }
+  button:hover { color: var(--ink); border-color: var(--mute); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button[aria-pressed="true"] {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .parts { display: flex; flex-direction: column; gap: 1px; }
+  .part {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 7px;
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink-2);
+    cursor: pointer;
+    width: 100%;
+  }
+  .part:hover { background: var(--surface-2); color: var(--ink); }
+  .part[aria-pressed="true"] {
+    background: var(--accent-dim);
+    color: var(--ink);
+    border: 0;
+  }
+  .part .sw {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .part .qty {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--mute);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Stat strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin-top: 20px;
+  }
+  .stat { background: var(--surface); padding: 13px 15px; }
+  .stat .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .stat .v {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .stat .v small { font-size: 13px; color: var(--ink-2); font-weight: 400; }
+  .stat .n { font-size: 11.5px; color: var(--mute); line-height: 1.45; }
+  .stat.hero .v { color: var(--accent); }
+
+  /* ---------- Tables ---------- */
+  .tscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 620px; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: var(--surface-2); }
+  td.name { color: var(--ink); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tfoot td {
+    padding: 11px 14px;
+    border-top: 2px solid var(--accent);
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    background: var(--surface-2);
+  }
+  .spec { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+  .why { display: block; font-size: 12.5px; color: var(--mute); margin-top: 3px; max-width: 46ch; }
+
+  /* ---------- Callout ---------- */
+  .note {
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--accent);
+    background: var(--surface);
+    padding: 13px 16px;
+    border-radius: var(--r);
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .note b { color: var(--ink); }
+  .note.warn { border-left-color: var(--warn); }
+
+  /* ---------- Grid of cards ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 16px;
+  }
+  .card p { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+  .card .kv {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Code walkthrough ---------- */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .code-block .cap {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7C8792;
+    padding: 9px 14px;
+    border-bottom: 1px solid #262D34;
+    background: rgba(255,255,255,0.02);
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 12.8px;
+    line-height: 1.75;
+    padding: 12px 0;
+    color: #C7D0D8;
+  }
+  pre .ln {
+    display: block;
+    padding: 0 14px 0 52px;
+    position: relative;
+    white-space: pre;
+  }
+  pre .ln::before {
+    content: attr(data-n);
+    position: absolute;
+    left: 0;
+    width: 34px;
+    text-align: right;
+    color: #4A545E;
+    font-variant-numeric: tabular-nums;
+  }
+  pre .ln:target, pre .ln.hl { background: rgba(242,102,44,0.10); }
+  .k { color: #E3856B; }   /* keyword */
+  .f { color: #8FC7E8; }   /* function */
+  .n { color: #C9AE7E; }   /* number */
+  .s { color: #9BC48A; }   /* string */
+  .c { color: #5E6B76; font-style: italic; }  /* comment */
+
+  .lines { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
+  .lex {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .lex:last-child { border-bottom: 0; }
+  .lex .no {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    padding-top: 3px;
+    white-space: nowrap;
+  }
+  .lex code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+
+  /* ---------- Mermaid ---------- */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 18px;
+    overflow-x: auto;
+  }
+
+  /* ---------- Steps ---------- */
+  ol.steps { list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 12px; }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 14.5px;
+  }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    padding-top: 4px;
+  }
+  ol.steps b { display: block; color: var(--ink); font-family: var(--display); font-size: 16px; letter-spacing: 0.02em; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 900px) {
+    .studio { grid-template-columns: 1fr; }
+    .stage { aspect-ratio: 1 / 1; min-height: 0; }
+    header.top { flex-direction: column; align-items: flex-start; }
+    .stamp { border-left: 0; padding-left: 0; text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+
+  /* ---------- Slider simulator ---------- */
+  .sl { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .sl:last-child { margin-bottom: 0; }
+  .sl label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .sl label b {
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 3px; background: var(--line);
+    border-radius: 2px; cursor: pointer;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent); border: 0; cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent); border: 0; cursor: pointer;
+  }
+  .metrics {
+    display: flex; flex-direction: column; gap: 5px;
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .metrics div { display: flex; justify-content: space-between; align-items: baseline; }
+  .metrics span { font-size: 12px; color: var(--mute); }
+  .metrics b {
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .metrics b.bad { color: var(--crit); }
+  .metrics b.warn { color: var(--warn); }
+  .metrics b.good { color: var(--ok); }
+
+  /* ---------- Tier belanja ---------- */
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .tier {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 16px; display: flex; flex-direction: column;
+  }
+  .tier.pick { border-color: var(--accent); }
+  .tier .lbl {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--mute);
+  }
+  .tier.pick .lbl { color: var(--accent); }
+  .tier .amt {
+    font-family: var(--display); font-size: 30px; font-weight: 700;
+    line-height: 1.2; margin: 2px 0 8px; font-variant-numeric: tabular-nums;
+  }
+  .tier p { font-size: 13px; color: var(--ink-2); }
+  .tier ul { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .tier li {
+    font-size: 12.5px; color: var(--mute); padding-left: 13px; position: relative;
+  }
+  .tier li::before {
+    content: "—"; position: absolute; left: 0; color: var(--line);
+  }
+  .buy { font-family: var(--mono); font-size: 12px; color: var(--accent); display: block; margin-top: 3px; }
+  .alt { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow">Rancangan Desain 3D Drone Lengkap · Rev B</div>
+      <h1>Quadcopter FPV Freestyle <em>5 Inci</em></h1>
+      <div style="display:flex;gap:16px;margin-top:12px;font-family:var(--mono);font-size:12px;flex-wrap:wrap">
+        <a href="perakitan.html" style="color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)">→ Perakitan 8 tahap &amp; render drone jadi</a>
+        <a href="micro.html" style="color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)">→ Versi hemat (micro whoop)</a>
+        <a href="quadcraft.html" style="color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)">→ QUADCRAFT F1 (cinewhoop hemat)</a>
+        <a href="presentasi.html" style="color:var(--mute);text-decoration:none;border-bottom:1px solid transparent">→ Presentasi diskusi</a>
+      </div>
+      <p class="sub">Rancangan lengkap sebuah quad 6S kelas freestyle: model 3D interaktif yang bisa diputar bebas, spesifikasi tiap komponen beserta alasan pemilihannya, dan pembedahan kode 3D-nya baris demi baris.</p>
+    </div>
+    <div class="stamp">
+      <b>KONFIGURASI</b> True-X quad<br>
+      <b>WHEELBASE</b> 220 mm<br>
+      <b>SISTEM</b> 6S LiPo · 5" tri-blade<br>
+      <b>AUW</b> 685 g (dengan baterai)
+    </div>
+  </header>
+
+  <!-- =================== SLOT GAMBAR ASLI (paket 5") =================== -->
+  <div style="margin:26px 0 6px;">
+    <div style="position:relative;border:2px dashed var(--line);border-radius:var(--r);background:var(--surface);aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:8px;overflow:hidden;">
+      <img src="desain-5inci.jpg" alt="Desain 5 inci" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0A0D10;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:9px;">
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);">Slot Gambar Asli — Paket 5" (12,5 jt)</div>
+        <div style="font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);">Render 5" (X terbuka) muncul di sini</div>
+        <div style="font-size:13px;color:var(--ink-2);max-width:50ch;">Simpan gambar 5"-mu (yang open-frame, kamera biru) ke folder <b style="color:var(--ink);">web</b> dengan nama persis:</div>
+        <code style="font-family:var(--mono);font-size:12.5px;color:var(--accent);background:var(--surface-2);border:1px solid var(--line);padding:3px 9px;border-radius:2px;">desain-5inci.jpg</code>
+        <div style="font-size:12px;color:var(--mute);margin-top:4px;">lalu muat ulang halaman (F5) — gambar otomatis muncul.</div>
+      </div>
+    </div>
+    <figure style="margin:14px 0 0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#0A0D10;">
+      <img src="desain-5inci-anatomi.jpg" alt="Anatomi desain 5 inci" style="width:100%;display:block;" onerror="this.parentElement.style.display='none';">
+      <figcaption style="font-family:var(--mono);font-size:11px;color:var(--mute);padding:8px 12px;border-top:1px solid var(--line);">Diagram anatomi paket 5" — render buatanmu sendiri (terurai &amp; berlabel).</figcaption>
+    </figure>
+  </div>
+
+  <!-- =================== VIEWER =================== -->
+  <section id="model" style="padding-top: 30px;">
+    <div class="studio">
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <div class="hud">MODE <b id="hudMode">SOLID</b> · YAW <b id="hudYaw">0°</b> · PITCH <b id="hudPitch">0°</b></div>
+        <div class="hint">seret = putar · scroll = zoom</div>
+        <div id="labels"></div>
+      </div>
+
+      <div class="rail">
+        <div class="panel">
+          <h4>Tampilan</h4>
+          <div class="btns">
+            <button id="bRotate" aria-pressed="true">Auto-putar</button>
+            <button id="bSpin" aria-pressed="false">Propeller</button>
+            <button id="bExplode" aria-pressed="false">Urai</button>
+            <button id="bWire" aria-pressed="false">Rangka</button>
+            <button id="bLabel" aria-pressed="true">Label</button>
+            <button id="bReset">Reset</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4>Komponen — klik untuk sorot</h4>
+          <div class="parts" id="partList"></div>
+        </div>
+
+        <div class="panel">
+          <h4>Sudut pandang</h4>
+          <div class="btns">
+            <button data-view="iso">Isometrik</button>
+            <button data-view="top">Atas</button>
+            <button data-view="front">Depan</button>
+            <button data-view="side">Samping</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat hero">
+        <div class="k">Thrust-to-weight</div>
+        <div class="v">7.0<small> : 1</small></div>
+        <div class="n">4 × 1 200 g thrust vs 685 g AUW</div>
+      </div>
+      <div class="stat">
+        <div class="k">Massa terbang</div>
+        <div class="v">685<small> g</small></div>
+        <div class="n">frame 425 g + LiPo 6S 260 g</div>
+      </div>
+      <div class="stat">
+        <div class="k">Daya puncak</div>
+        <div class="v">1 060<small> W</small></div>
+        <div class="n">~44 A × 24.0 V (6S penuh)</div>
+      </div>
+      <div class="stat">
+        <div class="k">Durasi terbang</div>
+        <div class="v">4–6<small> mnt</small></div>
+        <div class="n">gaya freestyle, 1300 mAh</div>
+      </div>
+      <div class="stat">
+        <div class="k">Estimasi biaya</div>
+        <div class="v">5,3<small> jt</small></div>
+        <div class="n">drone saja · 12,3 jt dengan radio &amp; goggles</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>Kenapa 6S, bukan 4S?</b> Pada daya yang sama, 6S menarik arus ~⅔ dari 4S (P = V × I). Arus lebih kecil berarti kabel lebih tipis, ESC lebih adem, sag voltase lebih kecil, dan throttle terasa lebih responsif. Konsekuensinya: motor harus ber-KV rendah (1750–1960 KV), karena RPM ≈ KV × Volt — motor 2400 KV di 6S akan berputar terlalu cepat dan membakar dirinya sendiri.
+    </div>
+  </section>
+
+  <!-- =================== KOMPONEN =================== -->
+  <section id="bom">
+    <div class="sec-head">
+      <span class="tag">01 / Daftar Belanja</span>
+      <h2>Apa yang dibeli, merek apa, berapa harganya</h2>
+    </div>
+    <p class="prose" style="margin-bottom: 22px;">Tiap baris berisi <strong>satu produk rekomendasi</strong> (tanda ▸) beserta alternatif hemat dan alternatif premium — jadi kamu bisa langsung mencarinya di marketplace tanpa harus menebak. Harga adalah estimasi pasar Indonesia untuk barang baru.</p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Komponen</th>
+            <th>Spesifikasi &amp; alasan</th>
+            <th class="num">Qty</th>
+            <th class="num">Harga (Rp)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Frame karbon</td>
+            <td>
+              <span class="spec">True-X 220 mm · lengan 5 mm</span>
+              <span class="buy">▸ iFlight Nazgul5 V3 frame kit</span>
+              <span class="alt">Alternatif: TBS Source One V5 (±380 rb, paling murah &amp; sparepart mudah) · GEPRC Mark5 (±650 rb) · SpeedyBee Master 5 V2</span>
+              <span class="why">Lengan 5 mm adalah standar freestyle — 4 mm terlalu gampang patah saat crash, 6 mm menambah berat tanpa manfaat. Wajib: lengan bisa dibeli satuan, karena inilah yang akan kamu ganti berulang kali.</span>
+            </td>
+            <td class="num">1</td>
+            <td class="num">450 000</td>
+          </tr>
+          <tr>
+            <td class="name">Motor brushless</td>
+            <td>
+              <span class="spec">2207 · 1800–1960 KV · 6S</span>
+              <span class="buy">▸ Emax ECO II 2207 1900KV (±320 rb/pcs)</span>
+              <span class="alt">Alternatif: iFlight XING2 2207 1855KV (±420 rb/pcs, lebih awet) · RCinPower GTS V4 2207 · T-Motor F60 Pro V (premium, ±550 rb/pcs)</span>
+              <span class="why">Angka 2207 = diameter stator 22 mm, tinggi 7 mm. Stator lebih tinggi = torsi lebih besar = enak menahan propeller 5". KV 1900 di 6S memberi rentang RPM yang pas untuk freestyle. <strong>Beli 4 + simpan 1 cadangan</strong> — motor adalah korban kedua tersering setelah propeller.</span>
+            </td>
+            <td class="num">4</td>
+            <td class="num">1 280 000</td>
+          </tr>
+          <tr>
+            <td class="name">Stack (FC + ESC)</td>
+            <td>
+              <span class="spec">F405 + ESC 4-in-1 55 A · 30.5 × 30.5 mm</span>
+              <span class="buy">▸ SpeedyBee F405 V4 Stack (FC + ESC 55A jadi satu paket)</span>
+              <span class="alt">Alternatif: Holybro Tekko32 F4 65A + Kakute F7 (±1.8 jt, lebih tangguh) · HGLRC Zeus F722 stack</span>
+              <span class="why"><strong>Beli sebagai stack, jangan terpisah.</strong> FC dan ESC yang sepaket sudah dijamin cocok kabel &amp; lubang bautnya, dan harganya lebih murah dari beli satuan. SpeedyBee punya app Bluetooth untuk setting tanpa laptop di lapangan — sangat membantu pemula. FC-nya membaca gyro 8 kHz dan menjalankan kode PID di bagian 5 dokumen ini.</span>
+            </td>
+            <td class="num">1</td>
+            <td class="num">1 250 000</td>
+          </tr>
+          <tr>
+            <td class="name">Kamera FPV</td>
+            <td>
+              <span class="spec">CMOS 1200TVL analog · lensa 2.1 mm</span>
+              <span class="buy">▸ Caddx Ratel 2 (±350 rb)</span>
+              <span class="alt">Alternatif: Foxeer Razer Mini (±280 rb, paling murah) · RunCam Phoenix 2 (±380 rb, warna paling enak)</span>
+              <span class="why">Ratel 2 adalah standar de-facto karena performa low-light-nya: kamu tetap bisa melihat saat terbang sore atau di bawah pohon. Analog dipilih untuk build pertama — latensi rendah, dan kalau hancur, ruginya kecil.</span>
+            </td>
+            <td class="num">1</td>
+            <td class="num">350 000</td>
+          </tr>
+          <tr>
+            <td class="name">VTX (pemancar video)</td>
+            <td>
+              <span class="spec">5.8 GHz · 25–800 mW · SmartAudio</span>
+              <span class="buy">▸ Rush Tank Solo / RushFPV Tank II (±420 rb)</span>
+              <span class="alt">Alternatif: SpeedyBee TX800 (±300 rb) · Foxeer Reaper Nano · AKK FX2 (termurah, ±200 rb, tapi cepat panas)</span>
+              <span class="why">Rush Tank punya heatsink besar — VTX 800 mW menghasilkan panas serius dan yang murah sering mati sendiri di tengah terbang. <strong>Jangan pernah nyalakan tanpa antena terpasang</strong>: dayanya memantul balik dan membakar penguat di dalamnya dalam hitungan detik.</span>
+            </td>
+            <td class="num">1</td>
+            <td class="num">420 000</td>
+          </tr>
+          <tr>
+            <td class="name">Penerima radio (RX)</td>
+            <td>
+              <span class="spec">ExpressLRS 2.4 GHz · 500 Hz</span>
+              <span class="buy">▸ RadioMaster RP1 ELRS (±160 rb)</span>
+              <span class="alt">Alternatif: RadioMaster RP3 (antena diversity, ±220 rb) · HappyModel EP1 · BetaFPV Nano ELRS</span>
+              <span class="why">Ini jalur kontrol — kalau putus, drone jatuh. ELRS memberi latensi terendah dan jangkauan kilometeran dengan harga di bawah 200 ribu, jadi tidak ada alasan untuk berhemat di sini. <strong>Pastikan versi firmware RX dan radio kamu sama</strong>, kalau beda tidak akan mau bind.</span>
+            </td>
+            <td class="num">1</td>
+            <td class="num">160 000</td>
+          </tr>
+          <tr>
+            <td class="name">Propeller 5"</td>
+            <td>
+              <span class="spec">5×4.3×3 (tri-blade) · polycarbonate</span>
+              <span class="buy">▸ HQProp 5.1×4.3×3 V1S (±35 rb/set)</span>
+              <span class="alt">Alternatif: Gemfan Hurricane 51466 (±40 rb/set) · Azure Power 5148 (paling senyap) · Dalprop Cyclone</span>
+              <span class="why">Diameter 5", pitch 4.3", 3 bilah. Tri-blade = dorongan halus &amp; kontrol presisi. <strong>Beli minimal 5 set sekaligus</strong> (±175 rb) — ini komponen paling sering hancur, dan terbang dengan propeller retak akan merusak bearing motor kamu.</span>
+            </td>
+            <td class="num">5 set</td>
+            <td class="num">175 000</td>
+          </tr>
+          <tr>
+            <td class="name">Baterai LiPo</td>
+            <td>
+              <span class="spec">6S1P · 1300 mAh · 100–130C · XT60</span>
+              <span class="buy">▸ CNHL Black Series 1300 mAh 6S 100C (±480 rb)</span>
+              <span class="alt">Alternatif: GNB 1300 6S 130C (±550 rb, favorit freestyle) · Tattu R-Line V5 (premium, ±700 rb) · Auline (termurah, ±380 rb)</span>
+              <span class="why">6 sel seri = 22.2 V nominal (25.2 V penuh). 100C artinya sanggup mengeluarkan 1.3 Ah × 100 = 130 A — jauh di atas kebutuhan 44 A, jadi voltase tidak drop saat punch. <strong>Beli minimal 2</strong>, idealnya 4: satu baterai cuma memberi 4–6 menit terbang, dan harus didinginkan sebelum di-charge lagi.</span>
+            </td>
+            <td class="num">2</td>
+            <td class="num">960 000</td>
+          </tr>
+          <tr>
+            <td class="name">Antena VTX</td>
+            <td>
+              <span class="spec">5.8 GHz RHCP · konektor MMCX/SMA</span>
+              <span class="buy">▸ Foxeer Lollipop 4 Plus (±120 rb)</span>
+              <span class="alt">Alternatif: TrueRC Singularity (±180 rb) · Lollipop 3 (±90 rb). Beli sepasang — antena adalah bagian pertama yang patah saat crash.</span>
+              <span class="why">Polarisasi RHCP harus <strong>sama</strong> antara drone dan goggles, kalau tidak sinyalnya anjlok drastis. Model "lollipop" bertahan lebih baik saat benturan dibanding antena batang kaku.</span>
+            </td>
+            <td class="num">2</td>
+            <td class="num">200 000</td>
+          </tr>
+          <tr>
+            <td class="name">Barang kecil (wajib)</td>
+            <td>
+              <span class="spec">XT60 · kabel 16 AWG · kapasitor · strap</span>
+              <span class="buy">▸ Kapasitor low-ESR 1000 µF 35 V · XT60 male · kabel silikon 16 AWG · battery strap anti-slip · zip tie · heat shrink · Loctite 243 (biru)</span>
+              <span class="why">Total ±250 rb untuk semuanya. <strong>Kapasitor bukan opsional</strong> — ia menyerap lonjakan voltase dari ESC yang bisa merusak FC dan mengotori gambar dengan garis-garis. Loctite biru di semua baut motor: getaran akan mengendurkannya, dan baut motor yang lepas saat terbang berarti drone hilang.</span>
+            </td>
+            <td class="num">1 set</td>
+            <td class="num">250 000</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Subtotal — drone saja</td>
+            <td class="num">5 295 000</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <h3 style="margin-top: 40px;">Yang tidak menempel di drone — tapi tetap harus dibeli</h3>
+    <p class="prose" style="margin-bottom: 18px;">Ini bagian yang paling sering membuat pemula kaget: <strong>drone-nya sendiri cuma separuh dari total biaya.</strong> Kabar baiknya, semua barang di bawah ini dibeli sekali dan dipakai seumur hidup di hobi ini — radio dan goggles akan tetap kamu pakai untuk drone kedua, ketiga, dan seterusnya.</p>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Barang</th>
+            <th>Contoh produk &amp; catatan</th>
+            <th class="num">Harga (Rp)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Radio / TX</td>
+            <td>
+              <span class="buy">▸ RadioMaster Boxer ELRS (±1.6 jt) — pilihan terbaik untuk pemula serius</span>
+              <span class="alt">Hemat: RadioMaster Pocket ELRS (±950 rb, ringkas &amp; sangat layak) · Premium: RadioMaster TX16S MK2 (±2.8 jt, layar sentuh &amp; gimbal hall)</span>
+              <span class="why">Pilih yang <strong>sudah ELRS built-in</strong> agar cocok dengan RX di atas. Ini alat yang akan kamu pegang ratusan jam — gimbal yang enak sepadan dengan uangnya. Radio bertahan bertahun-tahun melewati banyak drone.</span>
+            </td>
+            <td class="num">1 600 000</td>
+          </tr>
+          <tr>
+            <td class="name">Goggles</td>
+            <td>
+              <span class="buy">▸ Skyzone Cobra X V4 (±3.5 jt) — analog, tajam, dua penerima</span>
+              <span class="alt">Hemat: Eachine EV800DM (±1.2 jt, model "box", berat tapi jalan) · Menengah: Skyzone SKY02X · Digital: DJI Goggles N3 + O4 unit (±7 jt, gambar HD tapi ekosistemnya beda total)</span>
+              <span class="why">Barang termahal dalam daftar, dan yang paling menentukan pengalaman terbang. <strong>Kalau anggaran ketat, mulai dari goggles box murah</strong> — ia tetap membuatmu bisa terbang, dan bisa di-upgrade nanti tanpa mengubah apa pun di drone.</span>
+            </td>
+            <td class="num">3 500 000</td>
+          </tr>
+          <tr>
+            <td class="name">Charger LiPo</td>
+            <td>
+              <span class="buy">▸ ToolkitRC M6 / M7 (±650 rb) — butuh adaptor DC terpisah</span>
+              <span class="alt">Alternatif: ISDT Q6 Nano (±550 rb) · HOTA D6 Pro (dual channel, ±1.5 jt) · plus power supply 12 V 10 A (±250 rb)</span>
+              <span class="why">Wajib punya <em>balance charger</em> yang menyeimbangkan tiap sel. Mengisi LiPo dengan charger biasa akan membuat sel tidak seimbang, lalu menggembung, lalu terbakar. Charger ini juga bisa <em>storage charge</em> (3.8 V/sel) — baterai yang disimpan penuh akan rusak dalam hitungan hari.</span>
+            </td>
+            <td class="num">900 000</td>
+          </tr>
+          <tr>
+            <td class="name">Solder + alat</td>
+            <td>
+              <span class="buy">▸ Solder station 60 W ujung chisel — Quick 936A (±400 rb) atau Pinecil/TS101 (±600 rb, portabel)</span>
+              <span class="alt">Plus: timah 60/40 0.8 mm, flux pasta, tang potong, obeng hex 1.5/2.0/2.5 mm, multimeter (±150 rb), tweezers, prop tool</span>
+              <span class="why"><strong>Jangan pakai solder cabutan 30 W.</strong> Ground pad di ESC menyerap panas seperti spons — solder kecil tidak akan pernah "nyambung", dan kamu akan berakhir dengan sambungan dingin yang lepas di udara. Ujung chisel (pipih), bukan runcing: luas kontak lebih besar = panas berpindah lebih cepat.</span>
+            </td>
+            <td class="num">800 000</td>
+          </tr>
+          <tr>
+            <td class="name">Smoke stopper</td>
+            <td>
+              <span class="buy">▸ Smoke stopper XT60 (±150 rb) — atau rakit sendiri dengan lampu bohlam 12 V</span>
+              <span class="why">Rangkaian pembatas arus yang dipasang di antara baterai dan drone <strong>saat pertama kali menyalakan</strong>. Kalau ada solder yang korslet, ia yang "mati", bukan ESC + FC kamu yang harganya 1.25 juta. Harga 150 ribu untuk asuransi seharga stack — tidak ada alasan untuk melewatkannya.</span>
+            </td>
+            <td class="num">150 000</td>
+          </tr>
+          <tr>
+            <td class="name">LiPo safe bag</td>
+            <td>
+              <span class="buy">▸ LiPo fireproof bag / kotak amunisi bekas (±100 rb)</span>
+              <span class="why">LiPo yang rusak karena crash bisa terbakar <em>berjam-jam kemudian</em>, tanpa peringatan. Simpan dan isi daya selalu di dalam tas tahan api, di lantai keramik, jauh dari kain. Setelah crash keras, karantina baterainya di luar rumah selama 30 menit sebelum disimpan.</span>
+            </td>
+            <td class="num">100 000</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">Subtotal — radio, goggles, charger &amp; alat</td>
+            <td class="num">7 050 000</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <h3 style="margin-top: 40px;">Tiga tingkat anggaran</h3>
+    <p class="prose" style="margin-bottom: 18px;">Semuanya menghasilkan drone yang <em>terbang</em>. Yang membedakan adalah keawetan, kualitas gambar, dan seberapa cepat kamu merasa perlu upgrade.</p>
+
+    <div class="tiers">
+      <div class="tier">
+        <div class="lbl">Hemat</div>
+        <div class="amt">Rp 8,4 jt</div>
+        <p>Cukup untuk terbang beneran, dengan kompromi yang jujur. Drone-nya sendiri ±3,9 jt.</p>
+        <ul>
+          <li>Frame TBS Source One V5</li>
+          <li>Motor Emax ECO II 2207</li>
+          <li>Stack SpeedyBee F405 V4</li>
+          <li>Goggles box Eachine EV800DM</li>
+          <li>Radio RadioMaster Pocket</li>
+          <li>Baterai 2× merek lokal/Auline</li>
+        </ul>
+      </div>
+      <div class="tier pick">
+        <div class="lbl">Standar — rekomendasi</div>
+        <div class="amt">Rp 12,3 jt</div>
+        <p>Titik temu terbaik antara harga dan rasa. Ini konfigurasi yang dirancang di dokumen ini.</p>
+        <ul>
+          <li>Drone lengkap: Rp 5,3 jt</li>
+          <li>Radio Boxer ELRS: Rp 1,6 jt</li>
+          <li>Goggles Skyzone Cobra X: Rp 3,5 jt</li>
+          <li>Charger ToolkitRC M6: Rp 0,9 jt</li>
+          <li>Solder + alat + safety: Rp 1,0 jt</li>
+          <li>Tidak ada yang perlu di-upgrade dalam 1–2 tahun</li>
+        </ul>
+      </div>
+      <div class="tier">
+        <div class="lbl">Premium</div>
+        <div class="amt">Rp 20 jt+</div>
+        <p>Video digital HD dan komponen yang tahan crash berat. Naik kelas terbesar ada di goggles.</p>
+        <ul>
+          <li>Motor iFlight XING2 / T-Motor</li>
+          <li>Sistem digital DJI O4 Air Unit</li>
+          <li>DJI Goggles N3</li>
+          <li>Radio TX16S MK2</li>
+          <li>4–6 baterai GNB/Tattu</li>
+          <li>Charger dual-channel HOTA</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stats" style="margin-top: 20px;">
+      <div class="stat hero">
+        <div class="k">Total yang harus disiapkan</div>
+        <div class="v">12,3<small> jt</small></div>
+        <div class="n">Drone 5,3 jt + perlengkapan 7,0 jt (tier standar)</div>
+      </div>
+      <div class="stat">
+        <div class="k">Biaya sekali seumur hidup</div>
+        <div class="v">7,0<small> jt</small></div>
+        <div class="n">Radio, goggles, charger, alat — dipakai untuk semua drone berikutnya</div>
+      </div>
+      <div class="stat">
+        <div class="k">Biaya drone kedua</div>
+        <div class="v">5,3<small> jt</small></div>
+        <div class="n">Hanya komponen drone; perlengkapan sudah punya</div>
+      </div>
+      <div class="stat">
+        <div class="k">Biaya rutin</div>
+        <div class="v">~200<small> rb/bln</small></div>
+        <div class="n">Propeller patah, lengan frame, sesekali motor</div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <b>Dua barang yang paling sering diabaikan, dan paling mahal akibatnya:</b> <b>smoke stopper</b> (150 rb) — tanpa itu, satu solder yang korslet langsung membakar ESC + FC senilai 1,25 juta dalam sekejap. Dan <b>solder 60 W ujung chisel</b> — solder 30 W tidak akan pernah bisa memanaskan ground pad ESC sampai timahnya benar-benar mengalir, dan sambungan dingin yang terlihat "jadi" di meja akan lepas di udara. Harga total 550 ribu untuk melindungi belanja 5 juta.
+    </div>
+
+    <div class="note">
+      <b>Catatan harga.</b> Semua angka adalah estimasi pasar Indonesia dan bergerak cukup sering — kurs, stok, dan promo bisa menggeser 20–30%. Pakai daftar ini sebagai <em>peta belanja</em>, lalu cek harga terkini di marketplace sebelum membeli. Cara paling hemat: cari <em>bundle</em> frame+stack+motor dari satu toko, dan tanyakan grup FPV lokal soal barang bekas — motor dan frame bekas yang masih layak sering dijual setengah harga.
+    </div>
+  </section>
+
+  <!-- =================== ARSITEKTUR =================== -->
+  <section id="wiring">
+    <div class="sec-head">
+      <span class="tag">02 / Arsitektur Sistem</span>
+      <h2>Bagaimana semuanya terhubung</h2>
+    </div>
+    <p class="prose" style="margin-bottom: 20px;">Ada tiga jalur yang berjalan paralel di dalam drone: <strong>daya</strong> (baterai → ESC → motor), <strong>kontrol</strong> (radio → RX → FC → ESC), dan <strong>video</strong> (kamera → VTX → goggles). Jalur video sepenuhnya terpisah dari jalur kontrol — kalau video hilang, drone masih bisa dikendalikan (walau butuh nyali).</p>
+
+    <style>
+      .flow { display: flex; flex-direction: column; gap: 20px; min-width: 640px; }
+      .lane { display: grid; grid-template-columns: 92px 1fr; gap: 16px; align-items: center; }
+      .lane + .lane { border-top: 1px solid var(--line); padding-top: 20px; }
+      .lane .lname {
+        font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--mute); line-height: 1.5;
+      }
+      .lane .lname b { display: block; color: var(--accent); font-size: 11px; font-weight: 600; }
+      .chain { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+      .node {
+        border: 1px solid var(--line); background: var(--surface-2);
+        border-radius: 2px; padding: 8px 11px; min-width: 96px;
+      }
+      .node .t { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+      .node .d { font-family: var(--mono); font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+      .node.pwr { border-left: 2px solid var(--warn); }
+      .node.brain { border-left: 2px solid var(--accent); }
+      .node.air { border-style: dashed; background: transparent; }
+      .arrow {
+        flex: 1; min-width: 54px; position: relative; height: 1px;
+        background: var(--line); margin: 0 2px;
+      }
+      .arrow.wl { background: none; border-top: 1px dashed var(--line); }
+      .arrow::after {
+        content: ""; position: absolute; right: -1px; top: -3px;
+        border-left: 6px solid var(--mute);
+        border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+      }
+      .arrow span {
+        position: absolute; left: 50%; top: -9px; transform: translateX(-50%);
+        font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em;
+        color: var(--mute); background: var(--surface); padding: 0 5px; white-space: nowrap;
+      }
+      .fan { display: flex; flex-direction: column; gap: 4px; }
+      .fan .node { min-width: 118px; padding: 5px 10px; }
+    </style>
+
+    <div class="diagram">
+      <div class="flow">
+
+        <div class="lane">
+          <div class="lname"><b>Daya</b>22.2 V DC</div>
+          <div class="chain">
+            <div class="node pwr">
+              <div class="t">LiPo 6S</div>
+              <div class="d">1300 mAh · 100C</div>
+            </div>
+            <div class="arrow"><span>XT60 · 16 AWG</span></div>
+            <div class="node pwr">
+              <div class="t">ESC 4-in-1</div>
+              <div class="d">55 A · + kapasitor 1000 µF</div>
+            </div>
+            <div class="arrow"><span>3 fasa AC</span></div>
+            <div class="fan">
+              <div class="node"><div class="t">Motor ×4</div><div class="d">2207 · 1960 KV</div></div>
+              <div class="node"><div class="t">BEC → FC</div><div class="d">9 V + 5 V</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lname"><b>Kontrol</b>latensi &lt;10 ms</div>
+          <div class="chain">
+            <div class="node air">
+              <div class="t">Radio TX</div>
+              <div class="d">2.4 GHz ELRS</div>
+            </div>
+            <div class="arrow wl"><span>gelombang radio</span></div>
+            <div class="node">
+              <div class="t">RX ELRS</div>
+              <div class="d">UART · 500 Hz</div>
+            </div>
+            <div class="arrow"><span>CRSF</span></div>
+            <div class="node brain">
+              <div class="t">Flight Controller</div>
+              <div class="d">F722 · loop PID 8 kHz</div>
+            </div>
+            <div class="arrow"><span>DShot600 ×4</span></div>
+            <div class="node pwr">
+              <div class="t">ESC</div>
+              <div class="d">→ motor</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lname"><b>Video</b>analog 5.8 GHz</div>
+          <div class="chain">
+            <div class="node">
+              <div class="t">Kamera FPV</div>
+              <div class="d">1200 TVL · 25°</div>
+            </div>
+            <div class="arrow"><span>sinyal video</span></div>
+            <div class="node brain">
+              <div class="t">FC → OSD</div>
+              <div class="d">timpa voltase &amp; timer</div>
+            </div>
+            <div class="arrow"><span>UART SmartAudio</span></div>
+            <div class="node">
+              <div class="t">VTX</div>
+              <div class="d">800 mW</div>
+            </div>
+            <div class="arrow wl"><span>5.8 GHz</span></div>
+            <div class="node air">
+              <div class="t">Goggles</div>
+              <div class="d">di kepala pilot</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="cards" style="margin-top: 18px;">
+      <div class="card">
+        <div class="kv">JALUR DAYA</div>
+        <h3>Baterai → ESC → Motor</h3>
+        <p>ESC memotong DC 22 V menjadi tiga fasa AC bergantian, menciptakan medan magnet berputar yang menyeret rotor motor. Tukar dua kabel fasa mana pun → motor berputar terbalik.</p>
+      </div>
+      <div class="card">
+        <div class="kv">JALUR KONTROL</div>
+        <h3>Stik → FC → PID → ESC</h3>
+        <p>Stik meminta <em>kecepatan putar</em>, bukan sudut. FC membandingkan permintaan itu dengan bacaan gyro, dan loop PID mengoreksi selisihnya 8 000 kali per detik lewat sinyal digital DShot600.</p>
+      </div>
+      <div class="card">
+        <div class="kv">JALUR VIDEO</div>
+        <h3>Kamera → OSD → VTX</h3>
+        <p>Video menembus FC agar chip OSD bisa menimpakan data (voltase, timer, RSSI) ke gambar sebelum dipancarkan. Ini alasan kabel kamera masuk ke FC, bukan langsung ke VTX.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== PERHITUNGAN =================== -->
+  <section id="calc">
+    <div class="sec-head">
+      <span class="tag">03 / Perhitungan</span>
+      <h2>Angka yang menentukan drone ini terbang atau tidak</h2>
+    </div>
+
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Besaran</th>
+            <th>Rumus</th>
+            <th class="num">Hasil</th>
+            <th>Artinya</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Massa terbang (AUW)</td>
+            <td class="spec">frame+elektronik+motor+prop + baterai</td>
+            <td class="num">685 g</td>
+            <td>Sweet spot freestyle 5" ada di 650–750 g. Di atas 800 g drone terasa "malas" dan tidak mau flip cepat.</td>
+          </tr>
+          <tr>
+            <td class="name">Thrust total</td>
+            <td class="spec">4 × 1 200 g (2207/1960KV + 5×4.3×3 @6S)</td>
+            <td class="num">4 800 g</td>
+            <td>Angka ini dari tabel uji thrust pabrikan motor — selalu cek datasheet dengan kombinasi prop yang sama.</td>
+          </tr>
+          <tr>
+            <td class="name">Thrust-to-weight</td>
+            <td class="spec">4 800 ÷ 685</td>
+            <td class="num">7.0 : 1</td>
+            <td><strong>Angka terpenting.</strong> Minimum 4:1 untuk bisa freestyle; 6–9:1 ideal. Di bawah 3:1 drone tidak akan bisa recover dari dive.</td>
+          </tr>
+          <tr>
+            <td class="name">Throttle melayang</td>
+            <td class="spec">√(1 ÷ 7.0) ≈ 0.38 → koreksi ~0.30</td>
+            <td class="num">~30 %</td>
+            <td>Idealnya hover di 25–35% stik. Kalau hover butuh 50%, drone kelebihan berat atau motor kurang bertenaga.</td>
+          </tr>
+          <tr>
+            <td class="name">Arus puncak</td>
+            <td class="spec">4 × ~11 A (per motor, full throttle)</td>
+            <td class="num">~44 A</td>
+            <td>ESC 55 A punya headroom 25%. Baterai 100C sanggup 130 A — tidak akan jadi bottleneck.</td>
+          </tr>
+          <tr>
+            <td class="name">Beban baterai (C-rate)</td>
+            <td class="spec">44 A ÷ 1.3 Ah</td>
+            <td class="num">34 C</td>
+            <td>Jauh di bawah rating 100C, artinya sag voltase minim dan baterai awet (tidak "puffy" setelah 20 kali pakai).</td>
+          </tr>
+          <tr>
+            <td class="name">RPM maksimum</td>
+            <td class="spec">1 960 KV × 25.2 V (unloaded)</td>
+            <td class="num">49 400</td>
+            <td>Terbebani propeller, riilnya turun ke ~28 000 RPM. Ini alasan kenapa balancing prop penting — getaran di RPM segini merusak gyro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <b>Cara pakai tabel ini untuk desain lain.</b> Ganti satu variabel, lalu telusuri efek berantainya. Contoh: mau terbang lebih lama? Naikkan baterai ke 1500 mAh (+40 g) → AUW jadi 725 g → TWR turun ke 6.6:1 (masih aman) → durasi naik ~15%. Tapi naikkan ke 2200 mAh (+120 g) → TWR 5.6:1 dan drone mulai terasa berat saat flip. Setiap gram punya harga.
+    </div>
+  </section>
+
+  <!-- =================== BEDAH KODE =================== -->
+  <section id="code">
+    <div class="sec-head">
+      <span class="tag">04 / Bedah Kode 3D</span>
+      <h2>Cara model di atas dirender, baris per baris</h2>
+    </div>
+    <p class="prose">Viewer 3D di halaman ini <strong>tidak memakai library apa pun</strong> — tanpa Three.js, tanpa WebGL. Semuanya digambar di canvas 2D biasa dengan sekitar 150 baris matematika. Empat konsep yang perlu dipahami, dan semuanya cuma perkalian dan pembagian.</p>
+
+    <h3 style="margin-top: 30px;">A. Geometri — semua benda cuma titik dan sisi</h3>
+    <p class="prose">Sebuah balok = 8 titik (x, y, z) + 6 sisi. Setiap "sisi" hanyalah daftar nomor titik. Tidak ada objek 3D ajaib; hanya angka.</p>
+    <div class="code-block">
+      <div class="cap">geometri.js — pembangun balok</div>
+      <pre><span class="ln" data-n="1"><span class="k">function</span> <span class="f">box</span>(w, h, d) {</span><span class="ln" data-n="2">  <span class="k">const</span> [X, Y, Z] = [w/<span class="n">2</span>, h/<span class="n">2</span>, d/<span class="n">2</span>];</span><span class="ln" data-n="3">  <span class="k">const</span> verts = [</span><span class="ln" data-n="4">    [-X,-Y, Z], [X,-Y, Z], [X, Y, Z], [-X, Y, Z],  <span class="c">// 0-3: sisi depan</span></span><span class="ln" data-n="5">    [-X,-Y,-Z], [X,-Y,-Z], [X, Y,-Z], [-X, Y,-Z]   <span class="c">// 4-7: sisi belakang</span></span><span class="ln" data-n="6">  ];</span><span class="ln" data-n="7">  <span class="k">const</span> faces = [</span><span class="ln" data-n="8">    [<span class="n">0</span>,<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>], [<span class="n">5</span>,<span class="n">4</span>,<span class="n">7</span>,<span class="n">6</span>], [<span class="n">4</span>,<span class="n">0</span>,<span class="n">3</span>,<span class="n">7</span>],</span><span class="ln" data-n="9">    [<span class="n">1</span>,<span class="n">5</span>,<span class="n">6</span>,<span class="n">2</span>], [<span class="n">3</span>,<span class="n">2</span>,<span class="n">6</span>,<span class="n">7</span>], [<span class="n">4</span>,<span class="n">5</span>,<span class="n">1</span>,<span class="n">0</span>]</span><span class="ln" data-n="10">  ];</span><span class="ln" data-n="11">  <span class="k">return</span> { verts, faces };</span><span class="ln" data-n="12">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 2</div><div>Lebar dibagi dua. Titik-titik dibuat mengelilingi <em>titik pusat</em> benda (bukan dari pojok), supaya nanti kalau diputar, benda berputar pada porosnya sendiri — bukan terlempar mengelilingi pojoknya.</div></div>
+      <div class="lex"><div class="no">Baris 3–6</div><div>Delapan sudut balok. Sistem koordinatnya: <code>+X</code> ke kanan, <code>+Y</code> ke atas, <code>+Z</code> ke depan (arah hidung drone). Semua ukuran di kode ini satuannya <strong>milimeter asli</strong> — jadi frame 220 mm memang ditulis 220.</div></div>
+      <div class="lex"><div class="no">Baris 7–10</div><div>Enam sisi, masing-masing menunjuk 4 nomor titik. Urutannya <em>berlawanan arah jarum jam bila dilihat dari luar</em> — konvensi ini yang nanti membuat perhitungan arah hadap (normal) menghasilkan tanda yang benar.</div></div>
+      <div class="lex"><div class="no">Baris 11</div><div>Yang dikembalikan cuma dua array angka. Motor dibuat dengan fungsi <code>cyl()</code> serupa (silinder = dua lingkaran + dinding samping), propeller = 3 bilah tipis diputar 120°.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">B. Rotasi — memutar titik dengan sinus &amp; cosinus</h3>
+    <p class="prose">Ini inti dari "bolak-balik"-nya. Saat kamu menyeret mouse, yang berputar bukan kamera — <em>seluruh dunia</em> yang diputar berlawanan arah. Jauh lebih mudah dihitung, hasilnya identik.</p>
+    <div class="code-block">
+      <div class="cap">transform.js — rotasi sumbu-Y (yaw) lalu sumbu-X (pitch)</div>
+      <pre><span class="ln" data-n="1"><span class="k">function</span> <span class="f">rotateY</span>(p, a) {</span><span class="ln" data-n="2">  <span class="k">const</span> c = <span class="f">Math.cos</span>(a), s = <span class="f">Math.sin</span>(a);</span><span class="ln" data-n="3">  <span class="k">return</span> [ p[<span class="n">0</span>]*c - p[<span class="n">2</span>]*s,  p[<span class="n">1</span>],  p[<span class="n">0</span>]*s + p[<span class="n">2</span>]*c ];</span><span class="ln" data-n="4">}</span><span class="ln" data-n="5"><span class="k">function</span> <span class="f">rotateX</span>(p, a) {</span><span class="ln" data-n="6">  <span class="k">const</span> c = <span class="f">Math.cos</span>(a), s = <span class="f">Math.sin</span>(a);</span><span class="ln" data-n="7">  <span class="k">return</span> [ p[<span class="n">0</span>],  p[<span class="n">1</span>]*c - p[<span class="n">2</span>]*s,  p[<span class="n">1</span>]*s + p[<span class="n">2</span>]*c ];</span><span class="ln" data-n="8">}</span><span class="ln" data-n="9"></span><span class="ln" data-n="10"><span class="c">// dipakai tiap frame, untuk tiap titik:</span></span><span class="ln" data-n="11"><span class="k">const</span> world = <span class="f">add</span>(<span class="f">rotateY</span>(<span class="f">rotateX</span>(v, part.rx), part.ry + spin), part.pos);</span><span class="ln" data-n="12"><span class="k">const</span> view  = <span class="f">rotateX</span>(<span class="f">rotateY</span>(<span class="f">sub</span>(world, pivot), cam.yaw), cam.pitch);</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 3</div><div>Rumus rotasi 2D di bidang XZ. Nilai <code>y</code> tidak disentuh — itulah arti "berputar mengelilingi sumbu Y", seperti gasing. Kalau <code>a = 90°</code> maka <code>cos=0, sin=1</code>, sehingga titik <code>(1,0,0)</code> pindah ke <code>(0,0,1)</code>: sumbu X berubah jadi sumbu Z. Persis satu putaran seperempat.</div></div>
+      <div class="lex"><div class="no">Baris 7</div><div>Hal yang sama di bidang YZ — memutar ke atas/bawah. Kombinasi kedua fungsi ini sudah cukup untuk melihat objek dari segala arah; sumbu Z (roll) tidak dipakai supaya cakrawala tidak pernah miring.</div></div>
+      <div class="lex"><div class="no">Baris 11</div><div><strong>Model transform.</strong> Titik lokal diputar sesuai orientasi part-nya (contoh: lengan frame diputar 45°, kamera dimiringkan 25°), <code>spin</code> ditambahkan untuk propeller yang berputar, lalu digeser ke posisinya di badan drone. Urutan wajib: <em>putar dulu, geser belakangan</em>. Kalau dibalik, part akan mengorbit jauh dari pusat drone.</div></div>
+      <div class="lex"><div class="no">Baris 12</div><div><strong>View transform.</strong> Dikurangi <code>pivot</code> agar drone berputar pada titik tengah badannya, lalu diputar sebesar sudut kamera. Inilah yang bergerak saat kamu menyeret mouse.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">C. Proyeksi perspektif — dari 3D ke layar</h3>
+    <p class="prose">Satu pembagian yang mengubah segalanya: benda jauh mengecil karena dibagi angka yang lebih besar. Itu saja rahasia perspektif.</p>
+    <div class="code-block">
+      <div class="cap">project.js</div>
+      <pre><span class="ln" data-n="1"><span class="k">const</span> zv = cam.dist - view[<span class="n">2</span>];        <span class="c">// jarak titik ke mata kamera</span></span><span class="ln" data-n="2"><span class="k">if</span> (zv &lt; <span class="n">1</span>) <span class="k">return</span> <span class="k">null</span>;             <span class="c">// di belakang kamera — buang</span></span><span class="ln" data-n="3"><span class="k">const</span> k  = focal / zv;                <span class="c">// faktor pengecilan</span></span><span class="ln" data-n="4"><span class="k">const</span> sx = cx + view[<span class="n">0</span>] * k;         <span class="c">// koordinat layar X</span></span><span class="ln" data-n="5"><span class="k">const</span> sy = cy - view[<span class="n">1</span>] * k;         <span class="c">// koordinat layar Y</span></span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 1</div><div>Kamera berdiri di jarak <code>cam.dist</code> di depan objek. Titik dengan <code>z</code> besar berada dekat kamera, sehingga <code>zv</code> (jaraknya ke mata) kecil. Scroll mouse mengubah <code>cam.dist</code> — itulah zoom.</div></div>
+      <div class="lex"><div class="no">Baris 2</div><div>Pengaman <em>near clipping</em>. Tanpa ini, titik yang lewat di belakang kamera akan dibagi bilangan negatif dan muncul terbalik di layar seperti hantu.</div></div>
+      <div class="lex"><div class="no">Baris 3</div><div><strong>Jantung perspektif.</strong> <code>focal</code> ibarat panjang fokus lensa (nilai besar = lensa tele, gepeng; kecil = lensa lebar, dramatis). Bagi dengan jarak: objek 2× lebih jauh tampil 2× lebih kecil. Persis seperti mata manusia.</div></div>
+      <div class="lex"><div class="no">Baris 4–5</div><div><code>cx, cy</code> adalah titik tengah canvas. Perhatikan <code>sy</code> memakai <strong>minus</strong>: di dunia 3D sumbu Y naik ke atas, tapi di canvas Y bertambah ke bawah. Lupa membalik tanda ini = model tampil terbalik — kesalahan paling umum saat menulis renderer sendiri.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">D. Painter's algorithm &amp; pencahayaan</h3>
+    <p class="prose">Canvas 2D tidak tahu apa-apa soal kedalaman. Solusinya setua lukisan cat minyak: gambar yang jauh dulu, yang dekat menimpanya.</p>
+    <div class="code-block">
+      <div class="cap">render.js — urutkan, arsir, gambar</div>
+      <pre><span class="ln" data-n="1">tris.<span class="f">sort</span>((a, b) =&gt; b.depth - a.depth);   <span class="c">// jauh → dekat</span></span><span class="ln" data-n="2"></span><span class="ln" data-n="3"><span class="k">for</span> (<span class="k">const</span> t <span class="k">of</span> tris) {</span><span class="ln" data-n="4">  <span class="k">const</span> n = <span class="f">normalize</span>(<span class="f">cross</span>(<span class="f">sub</span>(t.v[<span class="n">1</span>], t.v[<span class="n">0</span>]), <span class="f">sub</span>(t.v[<span class="n">2</span>], t.v[<span class="n">0</span>])));</span><span class="ln" data-n="5">  <span class="k">const</span> lambert = <span class="f">Math.abs</span>(<span class="f">dot</span>(n, LIGHT));</span><span class="ln" data-n="6">  <span class="k">const</span> shade = <span class="n">0.32</span> + <span class="n">0.68</span> * lambert;</span><span class="ln" data-n="7">  ctx.fillStyle = <span class="f">tint</span>(t.color, shade);</span><span class="ln" data-n="8">  ctx.<span class="f">beginPath</span>();</span><span class="ln" data-n="9">  t.pts.<span class="f">forEach</span>((p, i) =&gt; i ? ctx.<span class="f">lineTo</span>(p[<span class="n">0</span>], p[<span class="n">1</span>]) : ctx.<span class="f">moveTo</span>(p[<span class="n">0</span>], p[<span class="n">1</span>]));</span><span class="ln" data-n="10">  ctx.<span class="f">closePath</span>();</span><span class="ln" data-n="11">  ctx.<span class="f">fill</span>();</span><span class="ln" data-n="12">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 1</div><div><strong>Painter's algorithm.</strong> Semua sisi dari semua part (±600 buah) dikumpulkan jadi satu tumpukan, diurutkan dari yang paling jauh, lalu digambar berurutan. Sisi yang dekat otomatis menutupi yang jauh. Ini pengganti murah untuk Z-buffer milik GPU — cukup akurat untuk model sekaku ini.</div></div>
+      <div class="lex"><div class="no">Baris 4</div><div><strong>Vektor normal</strong> = arah hadap sebuah sisi. Diperoleh dari <em>cross product</em> dua rusuk sisi tersebut: hasilnya vektor yang tegak lurus keduanya. Dihitung di ruang kamera, sehingga cahaya terasa menempel pada studio, bukan ikut berputar bersama drone.</div></div>
+      <div class="lex"><div class="no">Baris 5</div><div><strong>Hukum cosinus Lambert.</strong> <em>Dot product</em> antara arah hadap sisi dan arah cahaya menghasilkan 1 bila sisi menghadap lampu tepat, dan 0 bila menyamping. Itulah kenapa balok terlihat punya tiga tingkat kecerahan berbeda — dan kenapa mata kita langsung membacanya sebagai bentuk 3D. <code>Math.abs</code> membuat sisi dirender dua sisi, jadi bilah propeller yang tipis tidak menghilang saat menghadap ke belakang.</div></div>
+      <div class="lex"><div class="no">Baris 6</div><div>Angka <code>0.32</code> adalah <em>ambient light</em> — cahaya pantulan lingkungan. Tanpa itu, sisi yang membelakangi lampu jadi hitam pekat dan detailnya hilang total. Sisi yang menghadap lampu mendapat 0.32 + 0.68 = terang penuh.</div></div>
+      <div class="lex"><div class="no">Baris 9</div><div>Menggambar poligonnya. Trik <code>i ? lineTo : moveTo</code>: titik pertama dipakai untuk memulai jalur, sisanya menyambung garis. Mode "Rangka" pada tombol di atas hanya mengganti <code>fill()</code> jadi <code>stroke()</code> — itulah seluruh perbedaannya.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">E. Perakitan scene — drone dirakit seperti aslinya</h3>
+    <p class="prose">Tiap part disimpan sebagai satu entri: bentuk lokalnya, posisinya di badan drone, orientasinya, dan ke mana ia terbang saat mode "Urai" ditekan. Angka-angka di sini <strong>adalah dimensi asli drone dalam milimeter</strong> — jadi file ini sekaligus berfungsi sebagai gambar teknik.</p>
+    <div class="code-block">
+      <div class="cap">scene.js — mendaftarkan part &amp; memasang motor di keempat sudut</div>
+      <pre><span class="ln" data-n="1"><span class="k">const</span> MOT = <span class="n">78</span>;   <span class="c">// motor di ±78 mm → diagonal 220 mm (wheelbase)</span></span><span class="ln" data-n="2"></span><span class="ln" data-n="3"><span class="k">function</span> <span class="f">add</span>(group, label, geo, opts) {</span><span class="ln" data-n="4">  parts.<span class="f">push</span>({</span><span class="ln" data-n="5">    group, label, color: opts.color, verts: geo.verts, faces: geo.faces,</span><span class="ln" data-n="6">    pos: opts.pos,          <span class="c">// posisi di badan drone (mm)</span></span><span class="ln" data-n="7">    rx: opts.rx, ry: opts.ry,   <span class="c">// orientasi: lengan 45°, kamera 25°</span></span><span class="ln" data-n="8">    spin: opts.spin || <span class="n">0</span>,   <span class="c">// 0=diam, +1/-1 = arah putar propeller</span></span><span class="ln" data-n="9">    explode: opts.explode,  <span class="c">// arah terbang saat mode Urai</span></span><span class="ln" data-n="10">    anchor: opts.anchor     <span class="c">// titik gantung label</span></span><span class="ln" data-n="11">  });</span><span class="ln" data-n="12">}</span><span class="ln" data-n="13"></span><span class="ln" data-n="14"><span class="c">// Empat sudut: [x, z, arah putar]. Motor bersebelahan HARUS berlawanan arah.</span></span><span class="ln" data-n="15"><span class="k">const</span> corners = [[MOT,MOT,<span class="n">1</span>], [-MOT,MOT,-<span class="n">1</span>], [MOT,-MOT,-<span class="n">1</span>], [-MOT,-MOT,<span class="n">1</span>]];</span><span class="ln" data-n="16"></span><span class="ln" data-n="17">corners.<span class="f">forEach</span>((c, i) =&gt; {</span><span class="ln" data-n="18">  <span class="k">const</span> [x, z, dir] = c;</span><span class="ln" data-n="19">  <span class="f">add</span>(<span class="s">'motor'</span>, <span class="s">'Motor 2207'</span>, <span class="f">cyl</span>(<span class="n">13</span>, <span class="n">7</span>, <span class="n">16</span>), { pos: [x, <span class="n">6</span>, z] });   <span class="c">// stator</span></span><span class="ln" data-n="20">  <span class="f">add</span>(<span class="s">'motor'</span>, <span class="k">null</span>, <span class="f">cyl</span>(<span class="n">12.5</span>, <span class="n">13</span>, <span class="n">16</span>), { pos: [x, <span class="n">16</span>, z] });          <span class="c">// bell</span></span><span class="ln" data-n="20b"></span><span class="ln" data-n="21">  <span class="k">for</span> (<span class="k">let</span> b = <span class="n">0</span>; b &lt; <span class="n">3</span>; b++) {              <span class="c">// 3 bilah propeller</span></span><span class="ln" data-n="22">    <span class="f">add</span>(<span class="s">'prop'</span>, <span class="k">null</span>, <span class="f">blade</span>(<span class="n">55</span>, <span class="n">13</span>, <span class="n">1.6</span>), {</span><span class="ln" data-n="23">      pos: [x, <span class="n">28</span>, z], ry: b * <span class="n">120</span> * Math.PI / <span class="n">180</span>, spin: dir</span><span class="ln" data-n="24">    });</span><span class="ln" data-n="25">  }</span><span class="ln" data-n="26">});</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 1</div><div>Satu konstanta yang mengunci seluruh geometri. Ubah <code>78</code> jadi <code>88</code> dan drone berubah jadi kelas 7 inci — lengan, motor, dan propeller ikut bergeser otomatis karena semuanya diturunkan dari angka ini. Inilah gunanya menaruh dimensi di satu tempat.</div></div>
+      <div class="lex"><div class="no">Baris 8</div><div><code>spin</code> bukan sekadar animasi. Nilai <code>+1</code> dan <code>-1</code> mencerminkan fakta fisik: motor yang bersebelahan <strong>wajib</strong> berputar berlawanan arah. Kalau semua motor berputar searah, torsi reaksinya menumpuk dan drone akan berputar liar pada sumbunya sendiri sebelum sempat naik.</div></div>
+      <div class="lex"><div class="no">Baris 15</div><div>Pola tandanya <code>+ − − +</code> membentuk diagonal: motor depan-kanan sepasang dengan belakang-kiri. Persis pola ini yang nanti dipakai mixer di kode firmware untuk menghasilkan gerakan yaw.</div></div>
+      <div class="lex"><div class="no">Baris 19–20</div><div>Satu motor = dua silinder: <em>stator</em> (bagian diam, kumparan tembaga) dan <em>bell</em> (bagian berputar, tempat magnet dan propeller). Tinggi stator 7 mm inilah angka "07" pada nama motor <strong>22<u>07</u></strong>.</div></div>
+      <div class="lex"><div class="no">Baris 21–25</div><div>Tiga bilah dibuat dari geometri yang sama, hanya diputar 120° (= 360÷3). Karena <code>spin</code> ditambahkan ke <code>ry</code> saat render, seluruh bilah berputar serempak seolah menempel pada satu hub.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">F. Loop animasi &amp; kontrol orbit</h3>
+    <p class="prose">Bagian terakhir: yang membuat gambar diam menjadi objek yang bisa kamu putar-putar.</p>
+    <div class="code-block">
+      <div class="cap">loop.js — frame demi frame, dan respons mouse</div>
+      <pre><span class="ln" data-n="1"><span class="k">function</span> <span class="f">loop</span>(t) {</span><span class="ln" data-n="2">  <span class="k">const</span> dt = <span class="f">Math.min</span>((t - last) / <span class="n">1000</span>, <span class="n">0.05</span>);   <span class="c">// detik sejak frame lalu</span></span><span class="ln" data-n="3">  last = t;</span><span class="ln" data-n="4">  <span class="k">if</span> (state.autoRotate) cam.yaw   += dt * <span class="n">0.42</span>;      <span class="c">// putar pelan</span></span><span class="ln" data-n="5">  <span class="k">if</span> (state.spin)       spinAngle += dt * <span class="n">9</span>;         <span class="c">// propeller</span></span><span class="ln" data-n="6">  state.explode += (state.explodeTarget - state.explode) * <span class="f">Math.min</span>(dt * <span class="n">5</span>, <span class="n">1</span>);</span><span class="ln" data-n="7">  <span class="f">draw</span>();</span><span class="ln" data-n="8">  <span class="f">requestAnimationFrame</span>(loop);</span><span class="ln" data-n="9">}</span><span class="ln" data-n="10"></span><span class="ln" data-n="11">stage.<span class="f">addEventListener</span>(<span class="s">'pointermove'</span>, e =&gt; {</span><span class="ln" data-n="12">  <span class="k">if</span> (!drag) <span class="k">return</span>;</span><span class="ln" data-n="13">  cam.yaw   += (e.clientX - drag.x) * <span class="n">0.008</span>;</span><span class="ln" data-n="14">  cam.pitch  = <span class="f">clamp</span>(cam.pitch + (e.clientY - drag.y) * <span class="n">0.006</span>, -<span class="n">1.45</span>, <span class="n">1.45</span>);</span><span class="ln" data-n="15">  drag = { x: e.clientX, y: e.clientY };</span><span class="ln" data-n="16">});</span><span class="ln" data-n="17"></span><span class="ln" data-n="18">stage.<span class="f">addEventListener</span>(<span class="s">'wheel'</span>, e =&gt; {</span><span class="ln" data-n="19">  cam.dist = <span class="f">clamp</span>(cam.dist + e.deltaY * <span class="n">0.4</span>, <span class="n">190</span>, <span class="n">900</span>);   <span class="c">// zoom</span></span><span class="ln" data-n="20">}, { passive: <span class="k">false</span> });</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 2</div><div><strong>Delta time.</strong> Semua gerakan dikalikan <code>dt</code>, bukan dijalankan per frame. Tanpa ini, drone akan berputar dua kali lebih cepat di monitor 120 Hz dibanding 60 Hz. Batas <code>0.05</code> mencegah lompatan besar saat kamu pindah tab dan kembali.</div></div>
+      <div class="lex"><div class="no">Baris 6</div><div><strong>Interpolasi eksponensial.</strong> Nilai <code>explode</code> tidak melompat 0→1, tapi bergerak sebagian menuju target tiap frame. Hasilnya animasi yang melambat halus di ujung — satu baris, tanpa library animasi. Pola <code>x += (target − x) × k</code> ini muncul di mana-mana; kamu akan melihatnya lagi persis di filter gyro pada kode firmware di bawah.</div></div>
+      <div class="lex"><div class="no">Baris 13–14</div><div>Geser mouse ke samping → tambah <code>yaw</code>; ke atas/bawah → <code>pitch</code>. Pitch dijepit di ±1.45 rad (±83°) supaya tidak pernah melewati kutub — kalau lewat, model tampak terbalik dan kontrol terasa "kebalik".</div></div>
+      <div class="lex"><div class="no">Baris 19</div><div>Zoom = memindahkan kamera maju-mundur, bukan mengubah <code>focal</code>. Keduanya membuat objek membesar, tapi mengubah jarak mempertahankan perspektif yang natural, sedangkan mengubah focal akan menggepengkan objek seperti efek zoom lensa tele.</div></div>
+    </div>
+
+    <div class="note">
+      <b>Kenapa tidak pakai Three.js saja?</b> Untuk model sekelas ini (±600 poligon, tanpa tekstur), matematika di atas berjalan 60 fps dengan mudah — sementara Three.js memuat ~600 KB. Tapi begitu kamu butuh bayangan, transparansi bertumpuk, atau puluhan ribu poligon, painter's algorithm mulai gagal (sisi yang saling menembus akan berkedip) dan Z-buffer GPU jadi wajib. Aturan praktisnya: tulis sendiri untuk belajar dan untuk hal-hal kecil, pakai library saat produksi.
+    </div>
+  </section>
+
+  <!-- =================== FIRMWARE =================== -->
+  <section id="firmware">
+    <div class="sec-head">
+      <span class="tag">05 / Sistem Kendali Terbang</span>
+      <h2>Kode yang membuat drone tetap di udara</h2>
+    </div>
+    <p class="prose">Drone ini <strong>tidak stabil secara alami</strong>. Tanpa komputer yang mengoreksi, ia akan terguling dalam waktu di bawah satu detik — persis seperti sapu yang ditegakkan di telapak tangan. Yang menjaganya tetap tegak adalah satu loop yang berjalan <strong>8 000 kali per detik</strong>, mengulang enam langkah yang sama tanpa henti.</p>
+
+    <div class="cards" style="margin: 20px 0 26px;">
+      <div class="card"><div class="kv">125 µs / SIKLUS</div><h3>Enam langkah, 8 kHz</h3><p>Baca gyro → saring getaran → ambil perintah stik → hitung PID → campur ke 4 motor → kirim DShot. Lalu ulangi. Seluruh kode di bawah ini adalah keenam langkah itu.</p></div>
+      <div class="card"><div class="kv">BAHASA C</div><h3>Bisa dijalankan sungguhan</h3><p>Ini bukan pseudocode. Struktur dan matematikanya sama dengan yang ada di dalam Betaflight — hanya dipangkas agar bisa dibaca utuh dalam satu halaman.</p></div>
+      <div class="card"><div class="kv">SATU IDE</div><h3>Semuanya cuma umpan balik</h3><p>Setiap sistem di bawah — filter, PID, mixer, failsafe — adalah variasi dari satu kalimat: <em>ukur selisih antara yang diinginkan dan yang terjadi, lalu perkecil selisih itu.</em></p></div>
+    </div>
+
+    <h3>5.1 · Filter gyro — memisahkan gerakan dari getaran</h3>
+    <p class="prose">Gyro membaca dua hal sekaligus: rotasi drone yang sesungguhnya (0–50 Hz) dan getaran propeller (200–800 Hz). Kalau getaran ikut masuk ke PID, motor akan ikut bergetar, jadi panas, dan drone terbang seperti "digoreng". Filter memisahkan keduanya.</p>
+    <div class="code-block">
+      <div class="cap">filter.c — low-pass PT1 (satu kutub)</div>
+      <pre><span class="ln" data-n="1"><span class="k">typedef struct</span> { <span class="k">float</span> state, k; } pt1_t;</span><span class="ln" data-n="2"></span><span class="ln" data-n="3"><span class="k">void</span> <span class="f">pt1_init</span>(pt1_t *f, <span class="k">float</span> cutoff_hz, <span class="k">float</span> dt) {</span><span class="ln" data-n="4">    <span class="k">float</span> rc = <span class="n">1.0f</span> / (<span class="n">2.0f</span> * M_PI * cutoff_hz);</span><span class="ln" data-n="5">    f-&gt;k = dt / (rc + dt);        <span class="c">// 0..1 — seberapa cepat filter percaya data baru</span></span><span class="ln" data-n="6">    f-&gt;state = <span class="n">0.0f</span>;</span><span class="ln" data-n="7">}</span><span class="ln" data-n="8"></span><span class="ln" data-n="9"><span class="k">float</span> <span class="f">pt1_apply</span>(pt1_t *f, <span class="k">float</span> input) {</span><span class="ln" data-n="10">    f-&gt;state += f-&gt;k * (input - f-&gt;state);</span><span class="ln" data-n="11">    <span class="k">return</span> f-&gt;state;</span><span class="ln" data-n="12">}</span><span class="ln" data-n="13"></span><span class="ln" data-n="14"><span class="c">// Dipakai: satu filter per sumbu, cutoff 100 Hz pada loop 8 kHz</span></span><span class="ln" data-n="15"><span class="f">pt1_init</span>(&amp;gyro_lpf[ROLL], <span class="n">100.0f</span>, <span class="n">1.0f</span>/<span class="n">8000.0f</span>);</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 4</div><div><code>rc</code> = konstanta waktu rangkaian RC. Ini benar-benar meniru resistor+kapasitor pada elektronik analog — rumusnya identik, hanya dijalankan dalam angka.</div></div>
+      <div class="lex"><div class="no">Baris 5</div><div><code>k</code> menentukan "seberapa mudah percaya". <code>k</code> mendekati 1 = filter menerima hampir semua data baru (respons cepat, tapi getaran lolos). <code>k</code> mendekati 0 = filter sangat curiga (mulus, tapi lambat). Ini <strong>trade-off inti FPV</strong>: filter terlalu kuat → drone terasa lambat &amp; melayang; terlalu lemah → motor panas dan gyro kebanjiran noise.</div></div>
+      <div class="lex"><div class="no">Baris 10</div><div>Satu baris, dan inilah seluruh filternya. Ingat rumus <code>x += (target − x) × k</code> dari animasi 3D di atas? Persis sama. Bedanya di sana ia menghaluskan animasi, di sini ia menghaluskan gyro. Nilai lama diseret sedikit ke arah nilai baru — lonjakan mendadak (= getaran) tidak sempat lolos.</div></div>
+      <div class="lex"><div class="no">Baris 15</div><div>Cutoff 100 Hz: rotasi asli drone (di bawah 50 Hz) lewat hampir tanpa terganggu, getaran propeller (di atas 200 Hz) diredam kuat. Betaflight modern menambahkan <em>RPM filter</em> — notch yang mengikuti RPM tiap motor secara real-time berkat telemetri dari ESC, sehingga bisa membuang getaran secara presisi tanpa menambah lag.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.2 · Kontroler PID — jantung dari segalanya</h3>
+    <p class="prose">Stik kanan kamu tidak meminta "miring 30 derajat". Dalam mode Acro (satu-satunya mode yang dipakai freestyle), stik meminta <strong>kecepatan berputar</strong> — misalnya "berputar 400°/detik". Tugas PID: membuat gyro benar-benar membaca 400°/detik, apa pun yang terjadi (angin, baterai lemah, propeller patah sebagian).</p>
+    <div class="code-block">
+      <div class="cap">pid.c — satu instance per sumbu (roll, pitch, yaw)</div>
+      <pre><span class="ln" data-n="1"><span class="k">typedef struct</span> {</span><span class="ln" data-n="2">    <span class="k">float</span> kp, ki, kd;</span><span class="ln" data-n="3">    <span class="k">float</span> integral;</span><span class="ln" data-n="4">    <span class="k">float</span> prev_measurement;</span><span class="ln" data-n="5">    <span class="k">float</span> i_limit;</span><span class="ln" data-n="6">    pt1_t d_lpf;</span><span class="ln" data-n="7">} pid_t;</span><span class="ln" data-n="8"></span><span class="ln" data-n="9"><span class="k">float</span> <span class="f">pid_update</span>(pid_t *pid, <span class="k">float</span> setpoint, <span class="k">float</span> gyro, <span class="k">float</span> dt) {</span><span class="ln" data-n="10">    <span class="k">float</span> error = setpoint - gyro;              <span class="c">// yang diminta − yang terjadi</span></span><span class="ln" data-n="11"></span><span class="ln" data-n="12">    <span class="k">float</span> P = pid-&gt;kp * error;</span><span class="ln" data-n="13"></span><span class="ln" data-n="14">    pid-&gt;integral += pid-&gt;ki * error * dt;</span><span class="ln" data-n="15">    pid-&gt;integral = <span class="f">clampf</span>(pid-&gt;integral, -pid-&gt;i_limit, pid-&gt;i_limit);</span><span class="ln" data-n="16">    <span class="k">float</span> I = pid-&gt;integral;</span><span class="ln" data-n="17"></span><span class="ln" data-n="18">    <span class="k">float</span> deriv = -(gyro - pid-&gt;prev_measurement) / dt;  <span class="c">// turunan GYRO, bukan error</span></span><span class="ln" data-n="19">    pid-&gt;prev_measurement = gyro;</span><span class="ln" data-n="20">    <span class="k">float</span> D = pid-&gt;kd * <span class="f">pt1_apply</span>(&amp;pid-&gt;d_lpf, deriv);</span><span class="ln" data-n="21"></span><span class="ln" data-n="22">    <span class="k">return</span> P + I + D;      <span class="c">// → koreksi untuk mixer, satuan sembarang</span></span><span class="ln" data-n="23">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 10</div><div><strong>Error.</strong> Seluruh teori kendali berdiri di atas satu pengurangan ini. Kamu minta 400°/s, gyro bilang 310°/s, error = 90 → motor harus didorong lebih keras.</div></div>
+      <div class="lex"><div class="no">Baris 12</div><div><strong>P — sekarang.</strong> Koreksi sebanding dengan error saat ini. P terlalu rendah: drone terasa lembek, "berenang" di udara. P terlalu tinggi: drone berosilasi cepat dan terdengar mendengung. P adalah otot; ia melakukan 90% pekerjaan.</div></div>
+      <div class="lex"><div class="no">Baris 14–16</div><div><strong>I — masa lalu.</strong> Error yang kecil tapi terus-menerus akan menumpuk di integral hingga akhirnya terkoreksi. Inilah yang melawan bias permanen: baterai berat sebelah, angin konstan, satu motor sedikit lebih lemah. Tanpa I, drone akan selalu melayang miring pelan-pelan. <code>i_limit</code> (baris 15) adalah <em>anti-windup</em>: kalau drone tersangkut di jaring dan motor tidak bisa mengoreksi, integral akan membengkak tak terbatas — lalu meledak jadi throttle penuh saat dilepas. Klem ini mencegahnya.</div></div>
+      <div class="lex"><div class="no">Baris 18</div><div><strong>D — masa depan.</strong> Turunan = seberapa cepat error berubah, yaitu prediksi ke mana drone akan pergi. D adalah <em>rem</em>: ia melawan gerakan, meredam osilasi yang ditimbulkan P. Perhatikan turunan diambil dari <code>gyro</code>, <strong>bukan</strong> dari <code>error</code> — kalau dari error, setiap kali kamu menggerakkan stik mendadak, turunannya melonjak tak terhingga ("derivative kick") dan motor akan tersentak. Ini kesalahan klasik.</div></div>
+      <div class="lex"><div class="no">Baris 20</div><div>D memperkuat noise (turunan dari noise = noise besar), jadi ia <strong>wajib</strong> difilter. Inilah alasan D adalah gain yang paling sering bikin motor panas. Kalau setelah tuning motor terasa panas disentuh, tersangka utamanya selalu: D terlalu tinggi atau filter terlalu lemah.</div></div>
+      <div class="lex"><div class="no">Baris 22</div><div>Ketiganya dijumlahkan. P bereaksi pada <em>sekarang</em>, I pada <em>yang sudah lewat</em>, D pada <em>yang akan datang</em>. Silakan mainkan simulator di bawah untuk merasakan sendiri perannya.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.3 · Mixer — mengubah 3 sumbu jadi 4 motor</h3>
+    <p class="prose">PID menghasilkan tiga angka (roll, pitch, yaw), tapi drone punya empat motor. Mixer menerjemahkannya — dan tabel di bawah ini adalah <em>seluruh</em> pengetahuan drone tentang bentuk fisiknya sendiri.</p>
+    <div class="code-block">
+      <div class="cap">mixer.c — konfigurasi Quad-X</div>
+      <pre><span class="ln" data-n="1"><span class="c">//                     throttle  roll  pitch   yaw</span></span><span class="ln" data-n="2"><span class="k">static const float</span> MIX[<span class="n">4</span>][<span class="n">4</span>] = {</span><span class="ln" data-n="3">    { <span class="n">1.0f</span>, -<span class="n">1.0f</span>,  <span class="n">1.0f</span>, -<span class="n">1.0f</span> },   <span class="c">// M1 belakang-kanan</span></span><span class="ln" data-n="4">    { <span class="n">1.0f</span>, -<span class="n">1.0f</span>, -<span class="n">1.0f</span>,  <span class="n">1.0f</span> },   <span class="c">// M2 depan-kanan</span></span><span class="ln" data-n="5">    { <span class="n">1.0f</span>,  <span class="n">1.0f</span>,  <span class="n">1.0f</span>,  <span class="n">1.0f</span> },   <span class="c">// M3 belakang-kiri</span></span><span class="ln" data-n="6">    { <span class="n">1.0f</span>,  <span class="n">1.0f</span>, -<span class="n">1.0f</span>, -<span class="n">1.0f</span> },   <span class="c">// M4 depan-kiri</span></span><span class="ln" data-n="7">};</span><span class="ln" data-n="8"></span><span class="ln" data-n="9"><span class="k">void</span> <span class="f">mixer_apply</span>(<span class="k">float</span> thr, <span class="k">float</span> roll, <span class="k">float</span> pitch, <span class="k">float</span> yaw, <span class="k">float</span> out[<span class="n">4</span>]) {</span><span class="ln" data-n="10">    <span class="k">float</span> lo = <span class="n">0.0f</span>, hi = <span class="n">0.0f</span>;</span><span class="ln" data-n="11"></span><span class="ln" data-n="12">    <span class="k">for</span> (<span class="k">int</span> m = <span class="n">0</span>; m &lt; <span class="n">4</span>; m++) {</span><span class="ln" data-n="13">        out[m] = thr*MIX[m][<span class="n">0</span>] + roll*MIX[m][<span class="n">1</span>]</span><span class="ln" data-n="14">               + pitch*MIX[m][<span class="n">2</span>] + yaw*MIX[m][<span class="n">3</span>];</span><span class="ln" data-n="15">        <span class="k">if</span> (out[m] &lt; lo) lo = out[m];</span><span class="ln" data-n="16">        <span class="k">if</span> (out[m] &gt; hi) hi = out[m];</span><span class="ln" data-n="17">    }</span><span class="ln" data-n="18"></span><span class="ln" data-n="19">    <span class="c">// AIRMODE: geser semua motor agar tak ada yang terpotong</span></span><span class="ln" data-n="20">    <span class="k">float</span> range = hi - lo;</span><span class="ln" data-n="21">    <span class="k">float</span> shift = <span class="n">0.0f</span>;</span><span class="ln" data-n="22">    <span class="k">if</span> (range &gt; <span class="n">1.0f</span>) {                <span class="c">// koreksi lebih besar dari ruang gerak</span></span><span class="ln" data-n="23">        <span class="k">for</span> (<span class="k">int</span> m = <span class="n">0</span>; m &lt; <span class="n">4</span>; m++) out[m] /= range;   <span class="c">// kecilkan proporsional</span></span><span class="ln" data-n="24">        lo /= range; hi /= range;</span><span class="ln" data-n="25">    }</span><span class="ln" data-n="26">    <span class="k">if</span> (lo &lt; <span class="n">0.0f</span>)      shift = -lo;    <span class="c">// angkat semua motor</span></span><span class="ln" data-n="27">    <span class="k">else if</span> (hi &gt; <span class="n">1.0f</span>) shift = <span class="n">1.0f</span> - hi;   <span class="c">// turunkan semua motor</span></span><span class="ln" data-n="28"></span><span class="ln" data-n="29">    <span class="k">for</span> (<span class="k">int</span> m = <span class="n">0</span>; m &lt; <span class="n">4</span>; m++)</span><span class="ln" data-n="30">        out[m] = <span class="f">clampf</span>(out[m] + shift, <span class="n">0.0f</span>, <span class="n">1.0f</span>);</span><span class="ln" data-n="31">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 3–6</div><div><strong>Baca kolomnya, bukan barisnya.</strong> Kolom <em>roll</em>: motor kanan (M1, M2) dapat <code>−1</code>, kiri dapat <code>+1</code> → perintah roll ke kanan memperlambat motor kanan, drone miring ke kanan. Kolom <em>pitch</em>: motor belakang <code>+1</code> → hidung terangkat. Kolom <em>yaw</em>: polanya diagonal (M1 &amp; M4 negatif, M2 &amp; M3 positif) — dan diagonal itu <strong>persis pasangan motor yang berputar searah</strong>. Yaw tidak bekerja dengan mendorong udara ke samping; ia bekerja dengan mempercepat dua motor yang berputar searah, sehingga <em>torsi reaksi</em>-nya memuntir seluruh badan drone ke arah sebaliknya. Prinsip yang sama dengan pergelangan tangan yang menahan bor listrik.</div></div>
+      <div class="lex"><div class="no">Baris 13–14</div><div>Perkalian matriks kecil. Satu perintah roll menyentuh keempat motor sekaligus — dua naik, dua turun. Tidak ada motor yang "bertugas" untuk satu sumbu tertentu; semuanya bekerja bersama untuk setiap gerakan.</div></div>
+      <div class="lex"><div class="no">Baris 19–27</div><div><strong>Airmode</strong> — fitur yang membedakan drone freestyle dari drone mainan. Bayangkan throttle di 0 dan kamu memerintahkan flip. Motor "seharusnya" berputar di nilai negatif — mustahil. Tanpa airmode, koreksi itu hilang dan drone kehilangan kendali total saat throttle nol (persis saat kamu dive!). Airmode <strong>menaikkan keempat motor secara bersamaan</strong> (baris 26) sampai koreksi muat. Menaikkan semua motor secara merata tidak mengubah sikap drone — hanya menambah sedikit dorongan ke atas. Harga yang murah untuk kendali penuh sepanjang waktu.</div></div>
+      <div class="lex"><div class="no">Baris 22–24</div><div>Kalau koreksi lebih besar dari seluruh rentang throttle yang tersedia, semua diperkecil <em>secara proporsional</em>. Ini penting: memotong (clip) satu motor saja akan merusak keseimbangan antar sumbu dan drone berputar ke arah yang tidak diminta.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.4 · DShot — mengirim perintah ke ESC</h3>
+    <p class="prose">Dulu FC berbicara ke ESC dengan pulsa analog (PWM), yang harus dikalibrasi dan rentan noise. DShot menggantinya dengan paket digital ber-checksum: salah satu bit rusak → ESC membuang paket itu, bukan menerjemahkannya jadi throttle acak.</p>
+    <div class="code-block">
+      <div class="cap">dshot.c — menyusun paket 16-bit</div>
+      <pre><span class="ln" data-n="1"><span class="k">uint16_t</span> <span class="f">dshot_packet</span>(<span class="k">uint16_t</span> value, <span class="k">bool</span> request_telemetry) {</span><span class="ln" data-n="2">    <span class="c">// value: 0 = stop, 1..47 = perintah khusus, 48..2047 = throttle</span></span><span class="ln" data-n="3">    <span class="k">uint16_t</span> packet = (value &lt;&lt; <span class="n">1</span>) | (request_telemetry ? <span class="n">1</span> : <span class="n">0</span>);</span><span class="ln" data-n="4"></span><span class="ln" data-n="5">    <span class="k">uint16_t</span> csum = <span class="n">0</span>, tmp = packet;</span><span class="ln" data-n="6">    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++) { csum ^= tmp; tmp &gt;&gt;= <span class="n">4</span>; }</span><span class="ln" data-n="7">    csum &amp;= <span class="n">0x0F</span>;</span><span class="ln" data-n="8"></span><span class="ln" data-n="9">    <span class="k">return</span> (packet &lt;&lt; <span class="n">4</span>) | csum;    <span class="c">// 11 throttle + 1 telem + 4 CRC = 16 bit</span></span><span class="ln" data-n="10">}</span><span class="ln" data-n="11"></span><span class="ln" data-n="12"><span class="k">void</span> <span class="f">motors_write</span>(<span class="k">float</span> out[<span class="n">4</span>]) {</span><span class="ln" data-n="13">    <span class="k">for</span> (<span class="k">int</span> m = <span class="n">0</span>; m &lt; <span class="n">4</span>; m++) {</span><span class="ln" data-n="14">        <span class="k">uint16_t</span> thr = armed</span><span class="ln" data-n="15">            ? (<span class="k">uint16_t</span>)(<span class="n">48</span> + out[m] * <span class="n">1999</span>)   <span class="c">// skala 0..1 → 48..2047</span></span><span class="ln" data-n="16">            : <span class="n">0</span>;                                <span class="c">// disarm = benar-benar 0</span></span><span class="ln" data-n="17">        <span class="f">dma_send</span>(m, <span class="f">dshot_packet</span>(thr, <span class="k">false</span>));  <span class="c">// DMA: CPU tidak menunggu</span></span><span class="ln" data-n="18">    }</span><span class="ln" data-n="19">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 2</div><div>Rentang 1–47 dicadangkan untuk <em>perintah</em>, bukan throttle: putar-balik arah motor, bunyikan beep (untuk mencari drone yang hilang di rumput), simpan setting ESC. Ini alasan kamu bisa membalik arah motor dari Betaflight tanpa menyolder ulang kabel.</div></div>
+      <div class="lex"><div class="no">Baris 6</div><div>Checksum XOR 4-bit. Karena ESC memverifikasi tiap paket, gangguan listrik tidak akan pernah diterjemahkan jadi lonjakan throttle. Di era PWM analog dulu, ini adalah penyebab nyata drone "kabur" tak terkendali.</div></div>
+      <div class="lex"><div class="no">Baris 14–16</div><div>Kalau <code>armed</code> bernilai salah, yang dikirim adalah <strong>nol mutlak</strong> — bukan "throttle rendah". Ini pemisah antara drone yang aman dan propeller yang berputar di tangan kamu.</div></div>
+      <div class="lex"><div class="no">Baris 17</div><div><strong>DMA</strong> (Direct Memory Access): chip mengirim bit-bit itu sendiri di latar belakang sementara CPU melanjutkan siklus PID berikutnya. Tanpa DMA, menunggui pengiriman 4 × 16 bit akan menghabiskan sebagian besar dari jatah 125 µs kita.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.5 · Radio — dari stik ke setpoint</h3>
+    <p class="prose">ExpressLRS mengirim 16 kanal yang dipadatkan menjadi 11 bit masing-masing, lewat protokol CRSF. Lalu ada langkah yang sering dilupakan pemula: nilai stik <strong>bukan</strong> langsung jadi setpoint — ia melewati kurva rates dulu.</p>
+    <div class="code-block">
+      <div class="cap">rx_crsf.c — membongkar paket &amp; menerapkan kurva rates</div>
+      <pre><span class="ln" data-n="1"><span class="c">// Frame CRSF: [addr][len][type=0x16][22 byte payload][crc8]</span></span><span class="ln" data-n="2"><span class="k">void</span> <span class="f">crsf_unpack</span>(<span class="k">const uint8_t</span> *p, <span class="k">uint16_t</span> ch[<span class="n">16</span>]) {</span><span class="ln" data-n="3">    <span class="k">uint32_t</span> bits = <span class="n">0</span>;</span><span class="ln" data-n="4">    <span class="k">int</span> nbits = <span class="n">0</span>, idx = <span class="n">0</span>;</span><span class="ln" data-n="5">    <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">22</span> &amp;&amp; idx &lt; <span class="n">16</span>; i++) {</span><span class="ln" data-n="6">        bits |= (<span class="k">uint32_t</span>)p[i] &lt;&lt; nbits;   <span class="c">// tumpuk byte demi byte</span></span><span class="ln" data-n="7">        nbits += <span class="n">8</span>;</span><span class="ln" data-n="8">        <span class="k">while</span> (nbits &gt;= <span class="n">11</span> &amp;&amp; idx &lt; <span class="n">16</span>) {</span><span class="ln" data-n="9">            ch[idx++] = bits &amp; <span class="n">0x7FF</span>;         <span class="c">// ambil 11 bit (172..1811)</span></span><span class="ln" data-n="10">            bits &gt;&gt;= <span class="n">11</span>; nbits -= <span class="n">11</span>;</span><span class="ln" data-n="11">        }</span><span class="ln" data-n="12">    }</span><span class="ln" data-n="13">    last_rx_ms = <span class="f">millis</span>();                  <span class="c">// bukti link masih hidup</span></span><span class="ln" data-n="14">}</span><span class="ln" data-n="15"></span><span class="ln" data-n="16"><span class="c">// rc: -1..+1 (stik). Hasil: setpoint dalam derajat/detik.</span></span><span class="ln" data-n="17"><span class="k">float</span> <span class="f">apply_rates</span>(<span class="k">float</span> rc, <span class="k">float</span> rc_rate, <span class="k">float</span> super, <span class="k">float</span> expo) {</span><span class="ln" data-n="18">    <span class="k">float</span> x = <span class="f">fabsf</span>(rc);</span><span class="ln" data-n="19">    <span class="k">float</span> curved = rc * (<span class="n">1.0f</span> - expo + expo * x * x);   <span class="c">// EXPO: lembut di tengah</span></span><span class="ln" data-n="20">    <span class="k">float</span> base   = curved * rc_rate * <span class="n">200.0f</span>;</span><span class="ln" data-n="21">    <span class="k">float</span> boost  = <span class="n">1.0f</span> / <span class="f">fmaxf</span>(<span class="n">1.0f</span> - x * super, <span class="n">0.01f</span>); <span class="c">// SUPER: liar di ujung</span></span><span class="ln" data-n="22">    <span class="k">return</span> base * boost;                              <span class="c">// mis. 670 °/s di stik penuh</span></span><span class="ln" data-n="23">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 5–12</div><div>Enam belas kanal × 11 bit = 176 bit, dipadatkan rapat ke dalam 22 byte tanpa satu bit pun terbuang — batas kanal tidak sejajar dengan batas byte. Loop ini menampung bit di sebuah "ember" (<code>bits</code>) dan menyendok 11 bit setiap kali cukup. Sepadat inilah yang membuat ELRS mampu mengirim 500 paket per detik dengan bandwidth yang sangat kecil.</div></div>
+      <div class="lex"><div class="no">Baris 13</div><div>Satu baris yang menyelamatkan nyawa drone. Setiap paket yang sah mencatat waktunya. Kalau cap waktu ini berhenti diperbarui, artinya link putus — dan failsafe di bawah akan mengambil alih.</div></div>
+      <div class="lex"><div class="no">Baris 19</div><div><strong>EXPO.</strong> Di sekitar tengah stik, kurvanya melandai — gerakan kecil menghasilkan rotasi kecil, sehingga kamu bisa terbang halus dan presisi. Tanpa expo, mengarahkan drone lewat celah sempit hampir mustahil.</div></div>
+      <div class="lex"><div class="no">Baris 21</div><div><strong>SUPER RATE.</strong> Kebalikan dari expo: di ujung stik, kurvanya meroket. Pembagian <code>1/(1 − x·super)</code> menuju tak hingga saat <code>x·super</code> mendekati 1 — makanya ada <code>fmaxf</code> sebagai pengaman. Efeknya: presisi di tengah <strong>dan</strong> flip 900°/s di ujung, dari stik yang sama. Inilah yang membuat drone freestyle terasa "hidup".</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.6 · Arming &amp; failsafe — sistem yang menjaga manusia</h3>
+    <p class="prose">Bagian kode yang paling jarang dibahas, tapi paling sering menentukan apakah kamu pulang dengan sepuluh jari yang utuh.</p>
+    <div class="code-block">
+      <div class="cap">safety.c</div>
+      <pre><span class="ln" data-n="1"><span class="k">bool</span> <span class="f">arming_allowed</span>(<span class="k">void</span>) {</span><span class="ln" data-n="2">    <span class="k">if</span> (rc[THROTTLE] &gt; <span class="n">0.02f</span>)          <span class="k">return</span> <span class="k">false</span>;  <span class="c">// throttle harus nol</span></span><span class="ln" data-n="3">    <span class="k">if</span> (<span class="f">fabsf</span>(attitude.roll)  &gt; <span class="n">25.0f</span>) <span class="k">return</span> <span class="k">false</span>;  <span class="c">// tidak boleh miring</span></span><span class="ln" data-n="4">    <span class="k">if</span> (<span class="f">fabsf</span>(attitude.pitch) &gt; <span class="n">25.0f</span>) <span class="k">return</span> <span class="k">false</span>;</span><span class="ln" data-n="5">    <span class="k">if</span> (!gyro_calibrated)              <span class="k">return</span> <span class="k">false</span>;  <span class="c">// gyro masih kalibrasi</span></span><span class="ln" data-n="6">    <span class="k">if</span> (<span class="f">millis</span>() - last_rx_ms &gt; <span class="n">100</span>)   <span class="k">return</span> <span class="k">false</span>;  <span class="c">// link radio hidup?</span></span><span class="ln" data-n="7">    <span class="k">if</span> (vbat &lt; <span class="n">21.0f</span>)                  <span class="k">return</span> <span class="k">false</span>;  <span class="c">// baterai layak?</span></span><span class="ln" data-n="8">    <span class="k">return</span> <span class="k">true</span>;</span><span class="ln" data-n="9">}</span><span class="ln" data-n="10"></span><span class="ln" data-n="11"><span class="k">void</span> <span class="f">failsafe_check</span>(<span class="k">void</span>) {</span><span class="ln" data-n="12">    <span class="k">uint32_t</span> silence = <span class="f">millis</span>() - last_rx_ms;</span><span class="ln" data-n="13"></span><span class="ln" data-n="14">    <span class="k">if</span> (silence &gt; <span class="n">1000</span>) {              <span class="c">// 1 detik tanpa kabar</span></span><span class="ln" data-n="15">        armed = <span class="k">false</span>;                <span class="c">// STAGE 2: matikan motor. Jatuh.</span></span><span class="ln" data-n="16">    } <span class="k">else if</span> (silence &gt; <span class="n">100</span>) {       <span class="c">// STAGE 1: mungkin cuma glitch</span></span><span class="ln" data-n="17">        rc[ROLL] = rc[PITCH] = rc[YAW] = <span class="n">0.0f</span>;   <span class="c">// stik ke tengah</span></span><span class="ln" data-n="18">        rc[THROTTLE] = hover_throttle;            <span class="c">// tahan ketinggian</span></span><span class="ln" data-n="19">    }</span><span class="ln" data-n="20">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 2</div><div>Kalau arming diizinkan saat throttle sedang naik, drone akan melompat dari tanah begitu di-arm. Setiap syarat di fungsi ini lahir dari kecelakaan nyata seseorang.</div></div>
+      <div class="lex"><div class="no">Baris 3–4</div><div>Menolak arming saat drone miring &gt;25° berarti: drone yang mendarat terbalik di rumput tidak bisa di-arm secara tidak sengaja lalu menggali tanah dengan propeller ke arah kamu.</div></div>
+      <div class="lex"><div class="no">Baris 14–15</div><div><strong>Failsafe = Drop, bukan pulang.</strong> Untuk quad 5" tanpa GPS, satu-satunya perilaku yang aman saat link putus adalah <em>mematikan motor</em>. Drone tanpa kendali yang masih menyala akan menjadi gergaji terbang seberat 700 gram yang melesat ke arah yang tidak bisa diprediksi. Jatuh di tempat jauh lebih aman — dan drone-nya biasanya masih bisa diperbaiki.</div></div>
+      <div class="lex"><div class="no">Baris 16–18</div><div>Kesenyapan singkat (100 ms) biasanya hanya gangguan sesaat — pesawat lewat, badan kamu menghalangi antena. Menjatuhkan drone karena itu terlalu berlebihan, jadi FC menahan posisi sebentar dan menunggu sinyal kembali.</div></div>
+    </div>
+
+    <h3 style="margin-top: 34px;">5.7 · Main loop — semuanya dirangkai</h3>
+    <div class="code-block">
+      <div class="cap">main.c — 8 000 kali per detik, selamanya</div>
+      <pre><span class="ln" data-n="1"><span class="k">while</span> (<span class="n">1</span>) {</span><span class="ln" data-n="2">    <span class="k">if</span> (!<span class="f">gyro_data_ready</span>()) <span class="k">continue</span>;      <span class="c">// 1. tunggu detak gyro (8 kHz)</span></span><span class="ln" data-n="3"></span><span class="ln" data-n="4">    vec3_t g = <span class="f">gyro_read</span>();</span><span class="ln" data-n="5">    <span class="k">for</span> (<span class="k">int</span> a = <span class="n">0</span>; a &lt; <span class="n">3</span>; a++)</span><span class="ln" data-n="6">        gyro[a] = <span class="f">pt1_apply</span>(&amp;gyro_lpf[a], g.axis[a]);   <span class="c">// 2. saring getaran</span></span><span class="ln" data-n="7"></span><span class="ln" data-n="8">    <span class="f">rx_poll</span>();</span><span class="ln" data-n="9">    <span class="f">failsafe_check</span>();                        <span class="c">// 3. link putus? ambil alih</span></span><span class="ln" data-n="10"></span><span class="ln" data-n="11">    <span class="k">for</span> (<span class="k">int</span> a = <span class="n">0</span>; a &lt; <span class="n">3</span>; a++) {</span><span class="ln" data-n="12">        setpoint[a] = <span class="f">apply_rates</span>(rc[a], rate_cfg[a].rc_rate,</span><span class="ln" data-n="13">                                  rate_cfg[a].super, rate_cfg[a].expo);</span><span class="ln" data-n="14">        u[a] = <span class="f">pid_update</span>(&amp;pid[a], setpoint[a], gyro[a], DT);  <span class="c">// 4. PID</span></span><span class="ln" data-n="15">    }</span><span class="ln" data-n="16"></span><span class="ln" data-n="17">    <span class="k">float</span> motor[<span class="n">4</span>];</span><span class="ln" data-n="18">    <span class="f">mixer_apply</span>(rc[THROTTLE], u[ROLL], u[PITCH], u[YAW], motor); <span class="c">// 5. mixer</span></span><span class="ln" data-n="19">    <span class="f">motors_write</span>(motor);                                        <span class="c">// 6. DShot</span></span><span class="ln" data-n="20"></span><span class="ln" data-n="21">    <span class="f">osd_task</span>();     <span class="c">// tugas lambat: OSD, telemetri, blackbox — sisa waktu</span></span><span class="ln" data-n="22">}</span></pre>
+    </div>
+    <div class="lines">
+      <div class="lex"><div class="no">Baris 2</div><div>Loop tidak berjalan sekencang mungkin; ia <strong>menunggu gyro</strong>. Gyro adalah metronom seluruh sistem — setiap chip gyro baru selesai mengukur, satu siklus penuh dijalankan. Ini yang membuat waktu antar siklus konsisten, dan konsistensi itu syarat mutlak agar perhitungan <code>dt</code> pada I dan D benar.</div></div>
+      <div class="lex"><div class="no">Baris 4–19</div><div>Enam langkah, berurutan, tanpa cabang yang rumit. Dari gyro membaca gerakan sampai motor menerima perintah: <strong>di bawah 300 mikrodetik</strong>. Manusia berkedip 1 000 kali lebih lambat dari itu. Kecepatan inilah — bukan sensor mahal atau algoritma pintar — yang membuat benda tak stabil ini terasa seperti menempel di udara.</div></div>
+      <div class="lex"><div class="no">Baris 21</div><div>Pekerjaan yang tidak mendesak (menggambar OSD, mengirim telemetri, menulis log blackbox) diletakkan di akhir dan boleh dilewati bila waktu habis. Prinsip <em>real-time</em>: <strong>selalu ada yang boleh terlambat, dan kamu harus memutuskan lebih dulu siapa itu.</strong> Yang tidak boleh terlambat: gyro, PID, motor.</div></div>
+    </div>
+  </section>
+
+  <!-- =================== SIMULATOR =================== -->
+  <section id="sim">
+    <div class="sec-head">
+      <span class="tag">06 / Simulator</span>
+      <h2>Rasakan sendiri PID-nya</h2>
+    </div>
+    <p class="prose" style="margin-bottom: 20px;">Di bawah ini kode PID dari 5.2 benar-benar berjalan, mengendalikan model fisika sumbu roll (inersia drone + jeda respons motor + noise gyro + delay loop). Garis putus-putus = yang diminta stik. Garis oranye = yang benar-benar dilakukan drone. <strong>Geser slider dan lihat apa yang rusak.</strong></p>
+
+    <div class="studio">
+      <div class="stage" id="simStage" style="aspect-ratio: 16/10; cursor: default; min-height: 320px;">
+        <canvas id="simcv"></canvas>
+        <div class="hud">SUMBU ROLL · <b id="simMode">TERSETEL</b></div>
+      </div>
+
+      <div class="rail">
+        <div class="panel">
+          <h4>Gain PID</h4>
+          <div class="sl">
+            <label for="sP">P — otot <b id="vP">60</b></label>
+            <input type="range" id="sP" min="0" max="140" value="60">
+          </div>
+          <div class="sl">
+            <label for="sI">I — ingatan <b id="vI">55</b></label>
+            <input type="range" id="sI" min="0" max="150" value="55">
+          </div>
+          <div class="sl">
+            <label for="sD">D — rem <b id="vD">32</b></label>
+            <input type="range" id="sD" min="0" max="100" value="32">
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4>Preset — klik lalu amati</h4>
+          <div class="btns">
+            <button data-pid="60,55,32">Tersetel</button>
+            <button data-pid="130,55,5">P terlalu tinggi</button>
+            <button data-pid="18,20,10">P terlalu rendah</button>
+            <button data-pid="60,55,95">D terlalu tinggi</button>
+            <button data-pid="60,0,32">Tanpa I</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4>Gangguan</h4>
+          <div class="btns">
+            <button id="bGust">Hembusan angin</button>
+            <button id="bBias" aria-pressed="false">Baterai berat sebelah</button>
+          </div>
+          <div class="metrics">
+            <div><span>Overshoot</span><b id="mOver">—</b></div>
+            <div><span>Error rata²</span><b id="mErr">—</b></div>
+            <div><span>Getaran motor</span><b id="mNoise">—</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards" style="margin-top: 18px;">
+      <div class="card">
+        <div class="kv">COBA INI DULU</div>
+        <h3>Naikkan P sampai patah</h3>
+        <p>Geser P ke 130. Garis oranye mulai bergetar cepat dan tidak mau diam — ini <em>osilasi</em>. Di dunia nyata, inilah suara mendengung dan motor yang panas. Sekarang naikkan D pelan-pelan: getarannya diredam. P mendorong, D mengerem.</p>
+      </div>
+      <div class="card">
+        <div class="kv">LALU INI</div>
+        <h3>Matikan I, nyalakan bias</h3>
+        <p>Set I = 0, lalu tekan "Baterai berat sebelah". Garis oranye tidak akan pernah menyentuh garis putus-putus — selalu meleset sedikit. Nyalakan I lagi: selisihnya perlahan tertutup. Itulah tugas I, dan itulah kenapa drone tanpa I selalu melayang miring.</p>
+      </div>
+      <div class="card">
+        <div class="kv">TERAKHIR</div>
+        <h3>Dorong D ke 95</h3>
+        <p>Lihat panel bawah: "Getaran motor" melonjak. Garis responsnya tampak baik-baik saja, tapi motornya menjerit — D memperkuat noise gyro. Inilah alasan motor bisa panas <em>padahal drone terbang enak</em>. Kesalahan tuning yang paling mahal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== BETAFLIGHT =================== -->
+  <section id="cli">
+    <div class="sec-head">
+      <span class="tag">07 / Konfigurasi</span>
+      <h2>Betaflight — siap tempel</h2>
+    </div>
+    <p class="prose">Kamu tidak menulis firmware dari nol; kamu <strong>mengonfigurasi</strong> Betaflight. Semua yang ada di bagian 5 sudah terpasang di dalamnya — tugasmu tinggal memberitahu drone ini tentang dirinya sendiri. Buka tab <b>CLI</b>, tempel, lalu <code>save</code>.</p>
+
+    <div class="code-block" style="margin-top: 18px;">
+      <div class="cap" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>betaflight cli — quad 5" 6S · rev A</span>
+        <button id="bCopy" style="font-size: 10px; padding: 3px 8px;">Salin</button>
+      </div>
+      <pre id="cliDump"><span class="ln" data-n="1"><span class="c"># PORT — beri tahu FC siapa yang terhubung ke mana</span></span><span class="ln" data-n="2">serial 1 64 115200 57600 0 115200      <span class="c"># UART2 = RX ExpressLRS (CRSF)</span></span><span class="ln" data-n="3">serial 2 8192 115200 57600 0 115200    <span class="c"># UART3 = VTX (SmartAudio)</span></span><span class="ln" data-n="4">set serialrx_provider = CRSF</span><span class="ln" data-n="5"></span><span class="ln" data-n="6"><span class="c"># MOTOR — protokol digital, tanpa kalibrasi</span></span><span class="ln" data-n="7">set motor_pwm_protocol = DSHOT600</span><span class="ln" data-n="8">set dshot_bidir = ON                   <span class="c"># ESC melapor RPM balik → RPM filter</span></span><span class="ln" data-n="9">set motor_poles = 14                   <span class="c"># jumlah magnet motor 2207</span></span><span class="ln" data-n="10">set idle_min_rpm = 25                  <span class="c"># motor tak pernah berhenti total saat armed</span></span><span class="ln" data-n="11"></span><span class="ln" data-n="12"><span class="c"># BATERAI — 6S: 6 sel × 4.2 V penuh, 3.5 V kosong</span></span><span class="ln" data-n="13">set vbat_max_cell_voltage = 420</span><span class="ln" data-n="14">set vbat_min_cell_voltage = 330</span><span class="ln" data-n="15">set vbat_warning_cell_voltage = 350    <span class="c"># OSD berkedip → waktunya pulang</span></span><span class="ln" data-n="16">set vbat_sag_compensation = 100        <span class="c"># PID dikoreksi saat voltase drop</span></span><span class="ln" data-n="17"></span><span class="ln" data-n="18"><span class="c"># FILTER — RPM filter aktif, jadi LPF statis boleh longgar (= latensi rendah)</span></span><span class="ln" data-n="19">set gyro_lpf1_static_hz = 0            <span class="c"># mati; RPM filter yang bekerja</span></span><span class="ln" data-n="20">set gyro_lpf2_static_hz = 500</span><span class="ln" data-n="21">set dyn_notch_count = 3</span><span class="ln" data-n="22">set dyn_notch_q = 300</span><span class="ln" data-n="23">set rpm_filter_harmonics = 3           <span class="c"># buang getaran di 1×, 2×, 3× RPM motor</span></span><span class="ln" data-n="24"></span><span class="ln" data-n="25"><span class="c"># RATES — kurva stik (lihat 5.5). ~670°/s di stik penuh.</span></span><span class="ln" data-n="26">set rates_type = ACTUAL</span><span class="ln" data-n="27">set roll_rc_rate = 20</span><span class="ln" data-n="28">set pitch_rc_rate = 20</span><span class="ln" data-n="29">set yaw_rc_rate = 20</span><span class="ln" data-n="30">set roll_expo = 45</span><span class="ln" data-n="31">set pitch_expo = 45</span><span class="ln" data-n="32">set roll_srate = 67</span><span class="ln" data-n="33">set pitch_srate = 67</span><span class="ln" data-n="34">set yaw_srate = 67</span><span class="ln" data-n="35"></span><span class="ln" data-n="36"><span class="c"># PID — titik awal yang aman untuk 5" 6S. Tune dari sini, jangan lompat.</span></span><span class="ln" data-n="37">set p_roll = 45</span><span class="ln" data-n="38">set i_roll = 80</span><span class="ln" data-n="39">set d_roll = 38</span><span class="ln" data-n="40">set p_pitch = 47</span><span class="ln" data-n="41">set i_pitch = 84</span><span class="ln" data-n="42">set d_pitch = 40</span><span class="ln" data-n="43">set p_yaw = 45</span><span class="ln" data-n="44">set i_yaw = 80</span><span class="ln" data-n="45">set d_yaw = 0                          <span class="c"># yaw tak butuh rem: tak ada gravitasi yang melawan</span></span><span class="ln" data-n="46">set d_max_roll = 48                    <span class="c"># D naik hanya saat manuver keras</span></span><span class="ln" data-n="47">set d_max_pitch = 50</span><span class="ln" data-n="48">set feedforward_transition = 0</span><span class="ln" data-n="49">set anti_gravity_gain = 80             <span class="c"># cegah nyungsep saat punch throttle</span></span><span class="ln" data-n="50"></span><span class="ln" data-n="51"><span class="c"># FAILSAFE — tanpa GPS, satu-satunya pilihan aman</span></span><span class="ln" data-n="52">set failsafe_procedure = DROP</span><span class="ln" data-n="53">set failsafe_delay = 4                 <span class="c"># 0.4 detik toleransi glitch</span></span><span class="ln" data-n="54"></span><span class="ln" data-n="55"><span class="c"># AMAN — jangan pernah dilonggarkan</span></span><span class="ln" data-n="56">set small_angle = 180                  <span class="c"># izinkan arming terbalik? TIDAK: pakai 25</span></span><span class="ln" data-n="57">set runaway_takeoff_prevention = ON    <span class="c"># motor liar saat armed → auto-disarm</span></span><span class="ln" data-n="58">set crash_recovery = OFF</span><span class="ln" data-n="59"></span><span class="ln" data-n="60">save</span></pre>
+    </div>
+
+    <div class="lines" style="margin-top: 20px;">
+      <div class="lex"><div class="no">Baris 8–9</div><div><strong>Kunci performa modern.</strong> <code>dshot_bidir</code> membalik arah komunikasi: ESC melaporkan RPM aktual tiap motor kembali ke FC. Dengan tahu RPM persisnya, FC bisa menempatkan notch filter <em>tepat</em> di frekuensi getaran propeller dan menggesernya secara real-time. Hasilnya: filter jauh lebih ringan → latensi turun → drone terasa lebih tajam. <code>motor_poles = 14</code> wajib benar, kalau salah RPM yang dilaporkan meleset dan filter menyaring frekuensi yang salah.</div></div>
+      <div class="lex"><div class="no">Baris 16</div><div><strong>Sag compensation.</strong> Baterai 6S penuh = 25.2 V, hampir habis = 21 V. Gain PID yang pas saat baterai penuh akan terasa lembek saat baterai lemah, karena motor menerima daya lebih kecil untuk perintah yang sama. Betaflight menaikkan gain secara otomatis seiring turunnya voltase — drone terasa sama dari detik pertama sampai baterai habis.</div></div>
+      <div class="lex"><div class="no">Baris 45</div><div><code>d_yaw = 0</code> mengejutkan banyak orang. Roll dan pitch dilawan gravitasi dan momentum — mereka butuh rem (D). Yaw hanya dilawan gesekan udara, yang sudah meredam dengan sendirinya. Menambahkan D di yaw cuma menambah noise tanpa manfaat.</div></div>
+      <div class="lex"><div class="no">Baris 49</div><div><strong>Anti-gravity.</strong> Saat kamu menyentak throttle, motor butuh waktu untuk berakselerasi, dan drone sempat "nyungsep" sekejap. Anti-gravity menaikkan gain I sementara selama perubahan throttle mendadak, sehingga hidung drone tetap di tempatnya. Rasakan bedanya persis saat kamu keluar dari dive.</div></div>
+      <div class="lex"><div class="no">Baris 57</div><div><strong>Runaway takeoff prevention.</strong> Kalau motor menyala tapi gyro melaporkan gerakan yang tidak masuk akal (contoh: arah motor terbalik, atau kabel gyro terlepas), FC otomatis disarm dalam beberapa ratus milidetik. Fitur ini sudah menyelamatkan banyak wajah. Jangan pernah dimatikan.</div></div>
+    </div>
+
+    <div class="note warn">
+      <b>Urutan tuning yang benar:</b> filter dulu (pastikan motor dingin), <em>baru</em> PID. Naikkan P sampai muncul osilasi cepat, lalu turunkan 10–15%. Naikkan D sampai osilasi hilang, tapi berhenti sebelum motor mulai panas. I terakhir — naikkan sampai drone berhenti melayang miring. Ubah <b>satu gain saja</b> tiap kali terbang, dan selalu <b>raba suhu motor</b> setelah mendarat: kalau tidak nyaman disentuh, kamu terlalu jauh.
+    </div>
+  </section>
+
+  <!-- =================== BUILD ORDER =================== -->
+  <section id="build">
+    <div class="sec-head">
+      <span class="tag">08 / Urutan Perakitan</span>
+      <h2>Rakit dengan urutan ini</h2>
+    </div>
+    <ol class="steps">
+      <li><div><b>Rakit frame kering</b>Pasang seluruh frame tanpa elektronik. Pastikan tidak ada baut yang seret dan semua lubang standoff sejajar. Kendurkan lagi — kamu akan membongkarnya sebentar lagi.</div></li>
+      <li><div><b>Solder motor ke ESC</b>Empat motor, tiga kabel masing-masing. Urutan kabel bebas — arah putaran diperbaiki lewat software nanti. Potong kabel motor secukupnya saja; kabel berlebih yang menjuntai akan tersayat propeller.</div></li>
+      <li><div><b>Solder XT60 + kapasitor</b>Merah ke pad <code>+</code>, hitam ke <code>−</code>. Kaki panjang kapasitor (positif) ke pad merah. Terbalik = kapasitor meledak dengan bunyi keras. Periksa dua kali sebelum baterai pertama masuk.</div></li>
+      <li><div><b>Uji continuity sebelum menyalakan</b>Multimeter mode buzzer, tempel di pad <code>+</code> dan <code>−</code>. Kalau berbunyi = ada korslet, jangan colok baterai. Lalu nyalakan pertama kali <strong>lewat smoke stopper</strong>, bukan langsung ke baterai.</div></li>
+      <li><div><b>Tumpuk FC di atas ESC</b>Hubungkan kabel pita 8-pin. Gunakan gel/grommet karet penyerap getaran pada baut stack — ini yang menyelamatkan gyro dari noise motor.</div></li>
+      <li><div><b>Pasang RX, kamera, VTX</b>RX dan VTX ke UART yang berbeda. Ingat: kamera masuk ke FC (bukan ke VTX) supaya OSD bisa ikut terpancar.</div></li>
+      <li><div><b>Konfigurasi Betaflight</b>Kalibrasi accelerometer, set arah motor lewat tab Motors (drone masih <em>tanpa propeller</em>!), bind radio, atur failsafe ke Drop, pasang mode Arm + Angle + Horizon di switch.</div></li>
+      <li><div><b>Hover test</b>Propeller dipasang terakhir, di lapangan terbuka. Terbang setinggi 1 meter, dengar suaranya, rasakan drift-nya. Baru setelah itu boleh mulai tuning PID dan filter.</div></li>
+    </ol>
+
+    <div class="note warn">
+      <b>Aturan mati:</b> propeller adalah hal <em>terakhir</em> yang dipasang dan hal <em>pertama</em> yang dilepas. Semua pengujian di meja — motor test, konfigurasi, cek arah putaran — dilakukan tanpa propeller. Bilah 5" pada 25 000 RPM bisa membuka jari sampai tulang. Di Indonesia, terbangkan di area terbuka jauh dari orang, maksimal 150 m AGL, dan hindari kawasan keselamatan operasi penerbangan (KKOP) di sekitar bandara — cek aturan terbaru DJPU/Permenhub sebelum terbang.
+    </div>
+  </section>
+
+  <footer>
+    <span>Rancangan Drone FPV 5" · Rev A · True-X 220 mm · 6S</span>
+    <span>Model 3D: canvas 2D murni, tanpa library</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ============================================================
+  // 1. GEOMETRI — pembangun bentuk dasar
+  // ============================================================
+  function box(w, h, d) {
+    const X = w / 2, Y = h / 2, Z = d / 2;
+    return {
+      verts: [
+        [-X, -Y, Z], [X, -Y, Z], [X, Y, Z], [-X, Y, Z],
+        [-X, -Y, -Z], [X, -Y, -Z], [X, Y, -Z], [-X, Y, -Z]
+      ],
+      faces: [[0,1,2,3], [5,4,7,6], [4,0,3,7], [1,5,6,2], [3,2,6,7], [4,5,1,0]]
+    };
+  }
+
+  function cyl(r, h, seg) {
+    seg = seg || 14;
+    const verts = [], faces = [], Y = h / 2;
+    for (let i = 0; i < seg; i++) {
+      const a = (i / seg) * Math.PI * 2;
+      verts.push([Math.cos(a) * r, Y, Math.sin(a) * r]);
+      verts.push([Math.cos(a) * r, -Y, Math.sin(a) * r]);
+    }
+    for (let i = 0; i < seg; i++) {
+      const j = (i + 1) % seg;
+      faces.push([i * 2, j * 2, j * 2 + 1, i * 2 + 1]);
+    }
+    const top = [], bot = [];
+    for (let i = 0; i < seg; i++) { top.push(i * 2); bot.push((seg - 1 - i) * 2 + 1); }
+    faces.push(top, bot);
+    return { verts, faces };
+  }
+
+  // Bilah propeller: balok tipis yang meruncing, dengan sedikit puntiran pitch
+  function blade(len, chord, thick) {
+    const t = thick / 2;
+    const v = [];
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const f = i / steps;
+      const z = 8 + f * len;                    // dari hub ke ujung
+      const c = chord * (0.55 + 0.75 * Math.sin(Math.PI * (0.25 + f * 0.72)));
+      const tw = (1 - f) * 0.30;                // puntiran: pangkal lebih miring
+      const dy = Math.sin(tw) * c * 0.5;
+      v.push([-c / 2, -t - dy, z], [c / 2, -t + dy, z], [c / 2, t + dy, z], [-c / 2, t - dy, z]);
+    }
+    const faces = [];
+    for (let i = 0; i < steps; i++) {
+      const a = i * 4, b = (i + 1) * 4;
+      faces.push([a, b, b + 1, a + 1]);
+      faces.push([a + 1, b + 1, b + 2, a + 2]);
+      faces.push([a + 2, b + 2, b + 3, a + 3]);
+      faces.push([a + 3, b + 3, b, a]);
+    }
+    faces.push([0, 1, 2, 3]);
+    faces.push([steps * 4 + 3, steps * 4 + 2, steps * 4 + 1, steps * 4]);
+    return { verts: v, faces };
+  }
+
+  // ============================================================
+  // 2. SCENE — drone dirakit dari part, satuan = milimeter asli
+  // ============================================================
+  const C = {
+    carbon:   '#2B3037',
+    carbonHi: '#3A4048',
+    silver:   '#9BA5AF',
+    accent:   '#F2662C',
+    pcbEsc:   '#2E4A38',
+    pcbFc:    '#1E3A57',
+    prop:     '#AEB6BE',
+    batt:     '#141920',
+    battTop:  '#D8532A',
+    cam:      '#22272E',
+    lens:     '#4A7FA0',
+    black:    '#191D22',
+    pi:       '#2C623E',
+    piGold:   '#B88A2E'
+  };
+
+  const MOT = 78;           // posisi motor: ±78 mm di X dan Z (wheelbase 220 mm diagonal)
+  const parts = [];
+  let idc = 0;
+
+  function add(group, label, geo, opts) {
+    opts = opts || {};
+    parts.push({
+      id: idc++,
+      group: group,
+      label: label,
+      color: opts.color || C.carbon,
+      verts: geo.verts,
+      faces: geo.faces,
+      pos: opts.pos || [0, 0, 0],
+      rx: opts.rx || 0,
+      ry: opts.ry || 0,
+      spin: opts.spin || 0,             // 0 = diam, ±1 = arah putar propeller
+      explode: opts.explode || [0, 0, 0],
+      anchor: opts.anchor || null       // titik tempat label 3D digantung
+    });
+  }
+
+  // --- Frame: pelat bawah + 4 lengan ---
+  add('frame', 'Frame karbon 5 mm', box(52, 3, 96), { color: C.carbon, pos: [0, 0, 0], anchor: [0, 0, -46] });
+  const armAng = [-45, 45, -135, 135];
+  const armPos = [[42, 42], [-42, 42], [42, -42], [-42, -42]];
+  for (let i = 0; i < 4; i++) {
+    add('frame', null, box(13, 4, 104), {
+      color: C.carbon,
+      pos: [armPos[i][0], 0.5, armPos[i][1]],
+      ry: armAng[i] * Math.PI / 180
+    });
+  }
+  // pelat atas + standoff
+  add('frame', null, box(46, 3, 74), { color: C.carbonHi, pos: [0, 34, -4] });
+  [[22, 26], [-22, 26], [22, -30], [-22, -30]].forEach(function (p) {
+    add('frame', null, cyl(3, 32, 8), { color: C.silver, pos: [p[0], 17.5, p[1]] });
+  });
+
+  // --- Stack: ESC + Flight Controller ---
+  add('esc', 'ESC 4-in-1 55 A', box(38, 2.5, 38), { color: C.pcbEsc, pos: [0, 8, 0], explode: [0, -40, 0], anchor: [0, 8, 0] });
+  add('fc', 'Flight Controller F7', box(36, 2.5, 36), { color: C.pcbFc, pos: [0, 20, 0], explode: [0, 40, 0], anchor: [0, 20, 0] });
+  add('fc', null, box(9, 1.6, 9), { color: C.black, pos: [0, 22, 0], explode: [0, 40, 0] });   // chip gyro
+
+  // --- Motor + propeller ---
+  const corners = [[MOT, MOT, 1], [-MOT, MOT, -1], [MOT, -MOT, -1], [-MOT, -MOT, 1]];
+  corners.forEach(function (c, i) {
+    const x = c[0], z = c[1], dir = c[2];
+    add('motor', i === 0 ? 'Motor 2207 · 1960 KV' : null, cyl(13, 7, 16), {
+      color: C.silver, pos: [x, 6, z], explode: [x * 0.28, 0, z * 0.28],
+      anchor: i === 0 ? [x, 12, z] : null
+    });
+    add('motor', null, cyl(12.5, 13, 16), { color: C.accent, pos: [x, 16, z], explode: [x * 0.28, 0, z * 0.28] });
+    add('motor', null, cyl(4, 5, 8), { color: C.black, pos: [x, 24, z], explode: [x * 0.28, 0, z * 0.28] });
+
+    // propeller: hub + 3 bilah, tiap bilah diputar 120°
+    add('prop', i === 0 ? 'Propeller 5×4.3×3' : null, cyl(7, 3, 12), {
+      color: C.prop, pos: [x, 28, z], spin: dir, explode: [x * 0.28, 34, z * 0.28],
+      anchor: i === 0 ? [x, 30, z] : null
+    });
+    for (let b = 0; b < 3; b++) {
+      add('prop', null, blade(55, 13, 1.6), {
+        color: C.prop, pos: [x, 28, z], ry: (b * 120) * Math.PI / 180,
+        spin: dir, explode: [x * 0.28, 34, z * 0.28]
+      });
+    }
+  });
+
+  // --- Baterai 6S 1300 mAh (dinaikkan +8 mm memberi ruang Raspberry Pi) ---
+  add('batt', 'LiPo 6S 1300 mAh', box(35, 30, 100), { color: C.batt, pos: [0, 59, -4], explode: [0, 95, 0], anchor: [0, 70, -4] });
+  add('batt', null, box(35.4, 5, 100), { color: C.battTop, pos: [0, 71, -4], explode: [0, 95, 0] });   // label baterai
+  [[0, 22], [0, -28]].forEach(function (p) {   // strap
+    add('batt', null, box(41, 34, 12), { color: C.black, pos: [p[0], 59, p[1]], explode: [0, 95, 0] });
+  });
+
+  // --- Raspberry Pi Zero 2 W (companion) + kamera inspeksi menghadap bawah ---
+  add('pi', 'Raspberry Pi Zero 2 W', box(30, 4, 52), { color: C.pi, pos: [0, 40, -26], explode: [0, 135, 0], anchor: [0, 43, -26] });
+  add('pi', null, box(11, 2, 11), { color: C.black, pos: [0, 43, -30], explode: [0, 135, 0] });    // chip SoC
+  add('pi', null, box(28, 2, 4), { color: C.piGold, pos: [0, 43, -2], explode: [0, 135, 0] });     // pin header GPIO
+  add('pi', 'Kamera inspeksi', box(20, 5, 14), { color: C.cam, pos: [0, 3, 28], explode: [0, -45, 55], anchor: [0, 1, 34] });
+  add('pi', null, cyl(3, 5, 12), { color: C.lens, pos: [0, -0.5, 28], explode: [0, -45, 55] });    // lensa (bawah)
+
+  // --- Kamera FPV (miring 25°) ---
+  add('cam', 'Kamera FPV 1200TVL', box(19, 19, 17), {
+    color: C.cam, pos: [0, 22, 40], rx: -25 * Math.PI / 180,
+    explode: [0, 0, 55], anchor: [0, 22, 48]
+  });
+  add('cam', null, cyl(6, 8, 12), {
+    color: C.lens, pos: [0, 25.5, 49], rx: (-25 + 90) * Math.PI / 180,
+    explode: [0, 0, 55]
+  });
+  // pelat samping penjepit kamera
+  [[16], [-16]].forEach(function (p) {
+    add('frame', null, box(2.5, 26, 30), { color: C.carbonHi, pos: [p[0], 20, 40] });
+  });
+
+  // --- VTX + antena ---
+  add('vtx', 'VTX 5.8 GHz 800 mW', box(30, 4, 26), { color: C.pcbEsc, pos: [0, 37, -30], explode: [0, 30, -40], anchor: [0, 37, -34] });
+  add('vtx', null, cyl(2, 42, 8), { color: C.black, pos: [0, 56, -48], rx: 32 * Math.PI / 180, explode: [0, 30, -40] });
+  add('vtx', null, cyl(4.5, 14, 10), { color: C.accent, pos: [0, 73, -58], rx: 32 * Math.PI / 180, explode: [0, 30, -40] });
+
+  // --- Antena RX (ELRS, dua rambut) ---
+  [[-18, 1], [18, -1]].forEach(function (p) {
+    add('rx', 'RX ExpressLRS', cyl(1, 30, 6), {
+      color: C.silver, pos: [p[0], 26, -46], rx: 40 * Math.PI / 180, ry: p[1] * 0.35,
+      explode: [p[0] * 0.6, 12, -30], anchor: p[0] > 0 ? [18, 32, -46] : null
+    });
+  });
+
+  // ============================================================
+  // 3. RENDERER
+  // ============================================================
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const labelBox = document.getElementById('labels');
+
+  const cam = { yaw: -0.62, pitch: 0.42, dist: 430 };
+  const HOME = { yaw: -0.62, pitch: 0.42, dist: 430 };
+  const PIVOT = [0, 26, 0];
+  const LIGHT = norm([-0.42, 0.72, 0.55]);
+
+  const state = {
+    autoRotate: true,
+    spin: false,
+    explode: 0,
+    explodeTarget: 0,
+    wire: false,
+    labels: true,
+    highlight: null
+  };
+
+  let W = 0, H = 0, focal = 900, spinAngle = 0;
+
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function cross(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function norm(v) {
+    const m = Math.hypot(v[0], v[1], v[2]) || 1;
+    return [v[0] / m, v[1] / m, v[2] / m];
+  }
+  function rotX(p, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c];
+  }
+  function rotY(p, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [p[0] * c - p[2] * s, p[1], p[0] * s + p[2] * c];
+  }
+
+  function shadeHex(hex, k, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    const f = function (v) { return Math.max(0, Math.min(255, Math.round(v * k))); };
+    return 'rgba(' + f(r) + ',' + f(g) + ',' + f(b) + ',' + alpha + ')';
+  }
+
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    focal = Math.max(600, H * 1.55);
+  }
+
+  // Titik lokal → dunia (model transform)
+  function toWorld(v, p, spinA, ex) {
+    let q = rotX(v, p.rx);
+    q = rotY(q, p.ry + (p.spin ? spinA * p.spin : 0));
+    return [
+      q[0] + p.pos[0] + p.explode[0] * ex,
+      q[1] + p.pos[1] + p.explode[1] * ex,
+      q[2] + p.pos[2] + p.explode[2] * ex
+    ];
+  }
+
+  // Dunia → ruang kamera (view transform)
+  function toView(w) {
+    return rotX(rotY(sub(w, PIVOT), cam.yaw), cam.pitch);
+  }
+
+  function project(v) {
+    const zv = cam.dist - v[2];
+    if (zv < 30) return null;
+    const k = focal / zv;
+    return [W / 2 + v[0] * k, H / 2 - v[1] * k, zv];
+  }
+
+  const labelEls = {};
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const ex = state.explode;
+    const polys = [];
+
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const dim = state.highlight !== null && p.group !== state.highlight;
+      const view = new Array(p.verts.length);
+      for (let j = 0; j < p.verts.length; j++) {
+        view[j] = toView(toWorld(p.verts[j], p, spinAngle, ex));
+      }
+      for (let f = 0; f < p.faces.length; f++) {
+        const idx = p.faces[f];
+        const pts = [];
+        let depth = 0, ok = true;
+        for (let k = 0; k < idx.length; k++) {
+          const s = project(view[idx[k]]);
+          if (!s) { ok = false; break; }
+          pts.push(s);
+          depth += s[2];
+        }
+        if (!ok || pts.length < 3) continue;
+        const n = norm(cross(sub(view[idx[1]], view[idx[0]]), sub(view[idx[2]], view[idx[0]])));
+        polys.push({
+          pts: pts,
+          depth: depth / pts.length,
+          light: Math.abs(dot(n, LIGHT)),
+          color: p.color,
+          dim: dim,
+          hot: state.highlight !== null && p.group === state.highlight
+        });
+      }
+    }
+
+    polys.sort(function (a, b) { return b.depth - a.depth; });
+
+    for (let i = 0; i < polys.length; i++) {
+      const t = polys[i];
+      const shade = 0.32 + 0.68 * t.light;
+      const alpha = t.dim ? 0.14 : 1;
+
+      ctx.beginPath();
+      ctx.moveTo(t.pts[0][0], t.pts[0][1]);
+      for (let k = 1; k < t.pts.length; k++) ctx.lineTo(t.pts[k][0], t.pts[k][1]);
+      ctx.closePath();
+
+      if (state.wire) {
+        ctx.strokeStyle = shadeHex(t.hot ? C.accent : t.color, 1.9, t.dim ? 0.12 : 0.75);
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = shadeHex(t.color, shade, alpha);
+        ctx.fill();
+        ctx.strokeStyle = shadeHex(t.color, shade * 0.55, alpha * 0.9);
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        if (t.hot) {
+          ctx.strokeStyle = 'rgba(242,102,44,0.85)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Label mengambang mengikuti titik 3D-nya
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!p.anchor || !p.label) continue;
+      let el = labelEls[p.id];
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'label';
+        el.textContent = p.label;
+        labelBox.appendChild(el);
+        labelEls[p.id] = el;
+      }
+      const w = [
+        p.anchor[0] + p.explode[0] * ex,
+        p.anchor[1] + p.explode[1] * ex,
+        p.anchor[2] + p.explode[2] * ex
+      ];
+      const s = project(toView(w));
+      const visible = state.labels && s && (state.highlight === null || state.highlight === p.group);
+      if (visible) {
+        el.style.transform = 'translate(' + s[0] + 'px,' + s[1] + 'px) translate(-50%,-50%)';
+        el.classList.add('on');
+      } else {
+        el.classList.remove('on');
+      }
+    }
+
+    document.getElementById('hudYaw').textContent = Math.round(((-cam.yaw * 180 / Math.PI) % 360 + 360) % 360) + '°';
+    document.getElementById('hudPitch').textContent = Math.round(cam.pitch * 180 / Math.PI) + '°';
+  }
+
+  let last = 0;
+  function loop(t) {
+    const dt = Math.min((t - last) / 1000, 0.05);
+    last = t;
+    if (state.autoRotate) cam.yaw += dt * 0.42;
+    if (state.spin) spinAngle += dt * 9;
+    state.explode += (state.explodeTarget - state.explode) * Math.min(dt * 5, 1);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ============================================================
+  // 4. INTERAKSI
+  // ============================================================
+  let drag = null;
+  stage.addEventListener('pointerdown', function (e) {
+    drag = { x: e.clientX, y: e.clientY };
+    stage.setPointerCapture(e.pointerId);
+    state.autoRotate = false;
+    document.getElementById('bRotate').setAttribute('aria-pressed', 'false');
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    cam.yaw += (e.clientX - drag.x) * 0.008;
+    cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch + (e.clientY - drag.y) * 0.006));
+    drag.x = e.clientX; drag.y = e.clientY;
+  });
+  stage.addEventListener('pointerup', function () { drag = null; });
+  stage.addEventListener('pointercancel', function () { drag = null; });
+  stage.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    cam.dist = Math.max(190, Math.min(900, cam.dist + e.deltaY * 0.4));
+  }, { passive: false });
+
+  function toggle(id, key, onChange) {
+    const b = document.getElementById(id);
+    b.addEventListener('click', function () {
+      state[key] = !state[key];
+      b.setAttribute('aria-pressed', String(state[key]));
+      if (onChange) onChange(state[key]);
+    });
+  }
+  toggle('bRotate', 'autoRotate');
+  toggle('bSpin', 'spin');
+  toggle('bWire', 'wire', function (v) {
+    document.getElementById('hudMode').textContent = v ? 'RANGKA' : 'SOLID';
+  });
+  toggle('bLabel', 'labels');
+
+  document.getElementById('bExplode').addEventListener('click', function () {
+    const on = state.explodeTarget < 0.5;
+    state.explodeTarget = on ? 1 : 0;
+    this.setAttribute('aria-pressed', String(on));
+  });
+
+  document.getElementById('bReset').addEventListener('click', function () {
+    cam.yaw = HOME.yaw; cam.pitch = HOME.pitch; cam.dist = HOME.dist;
+    state.explodeTarget = 0;
+    state.highlight = null;
+    document.getElementById('bExplode').setAttribute('aria-pressed', 'false');
+    document.querySelectorAll('.part').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
+  });
+
+  const VIEWS = {
+    iso:   { yaw: -0.62, pitch: 0.42, dist: 430 },
+    top:   { yaw: 0, pitch: 1.44, dist: 430 },
+    front: { yaw: Math.PI, pitch: 0.05, dist: 400 },
+    side:  { yaw: Math.PI / 2, pitch: 0.05, dist: 400 }
+  };
+  document.querySelectorAll('[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const v = VIEWS[b.dataset.view];
+      cam.yaw = v.yaw; cam.pitch = v.pitch; cam.dist = v.dist;
+      state.autoRotate = false;
+      document.getElementById('bRotate').setAttribute('aria-pressed', 'false');
+    });
+  });
+
+  // Daftar komponen — klik untuk menyorot
+  const GROUPS = [
+    { g: 'frame', n: 'Frame karbon + standoff', c: C.carbonHi, q: '220 mm' },
+    { g: 'motor', n: 'Motor brushless', c: C.accent, q: '×4' },
+    { g: 'prop', n: 'Propeller tri-blade', c: C.prop, q: '×4' },
+    { g: 'esc', n: 'ESC 4-in-1', c: C.pcbEsc, q: '55 A' },
+    { g: 'fc', n: 'Flight controller', c: C.pcbFc, q: 'F7' },
+    { g: 'batt', n: 'Baterai LiPo', c: C.battTop, q: '6S' },
+    { g: 'cam', n: 'Kamera FPV', c: C.lens, q: '25°' },
+    { g: 'vtx', n: 'VTX + antena', c: C.accent, q: '5.8G' },
+    { g: 'rx', n: 'Penerima ELRS', c: C.silver, q: '2.4G' },
+    { g: 'pi', n: 'Raspberry Pi + kamera', c: C.pi, q: 'Zero 2 W' }
+  ];
+  const list = document.getElementById('partList');
+  GROUPS.forEach(function (item) {
+    const b = document.createElement('button');
+    b.className = 'part';
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="sw" style="background:' + item.c + '"></span><span>' + item.n + '</span><span class="qty">' + item.q + '</span>';
+    b.addEventListener('click', function () {
+      const on = state.highlight !== item.g;
+      state.highlight = on ? item.g : null;
+      document.querySelectorAll('.part').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+      b.setAttribute('aria-pressed', String(on));
+    });
+    list.appendChild(b);
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<script>
+// ================================================================
+// SIMULATOR PID — model sumbu roll + kode PID yang sama dgn bagian 5.2
+// ================================================================
+(function () {
+  'use strict';
+
+  const cv = document.getElementById('simcv');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const box = document.getElementById('simStage');
+
+  // --- Parameter fisika (disederhanakan, tapi berperilaku seperti quad 5") ---
+  const DT       = 0.002;    // langkah simulasi 500 Hz
+  const TORQUE   = 3000;     // °/s² per satuan perintah motor
+  const DRAG     = 0.8;      // gesekan udara
+  const MOTOR_TAU = 0.030;   // motor butuh ~30 ms merespons
+  const DELAY_N  = 3;        // 6 ms transport delay (gyro + loop)
+  const NOISE    = 4.0;      // noise gyro °/s
+
+  const gain = { P: 60, I: 55, D: 32 };
+  let bias = 0;              // baterai berat sebelah
+  let gust = 0;              // hembusan angin
+
+  const sim = {
+    rate: 0, torque: 0, integral: 0, prevGyro: 0, dFilt: 0,
+    t: 0, u: 0, delay: new Array(DELAY_N).fill(0)
+  };
+
+  const N = 700;             // 1.4 detik jendela grafik
+  const trRate = new Float32Array(N);
+  const trSet  = new Float32Array(N);
+  const trU    = new Float32Array(N);
+  let head = 0, filled = 0;
+
+  let overshoot = 0, errSum = 0, errN = 0, uJitter = 0, prevU = 0;
+
+  function setpointAt(t) {
+    return (Math.floor(t / 1.1) % 2 === 0) ? 300 : -300;   // gelombang kotak ±300°/s
+  }
+
+  function step() {
+    // ---- 1. gyro dibaca (dengan noise + delay transport) ----
+    const measured = sim.rate + (Math.random() - 0.5) * 2 * NOISE;
+    sim.delay.push(measured);
+    const gyro = sim.delay.shift();
+
+    // ---- 2. PID (persis kode 5.2) ----
+    const setpoint = setpointAt(sim.t);
+    const error = setpoint - gyro;
+
+    const kp = gain.P * 5.0e-5;
+    const ki = gain.I * 2.2e-4;
+    const kd = gain.D * 3.0e-7;
+
+    const P = kp * error;
+    sim.integral = Math.max(-0.35, Math.min(0.35, sim.integral + ki * error * DT));
+    const deriv = -(gyro - sim.prevGyro) / DT;
+    sim.prevGyro = gyro;
+    sim.dFilt += 0.22 * (deriv - sim.dFilt);          // D-term LPF
+    const D = kd * sim.dFilt;
+
+    let u = P + sim.integral + D;
+    u = Math.max(-1, Math.min(1, u));                  // motor mentok
+    sim.u = u;
+
+    // ---- 3. fisika: motor lag → torsi → percepatan sudut ----
+    sim.torque += (u - sim.torque) * (DT / MOTOR_TAU);
+    const accel = TORQUE * sim.torque - DRAG * sim.rate + bias * 260 + gust;
+    sim.rate += accel * DT;
+    gust *= 0.94;
+
+    // ---- 4. metrik ----
+    const e = Math.abs(setpoint - sim.rate);
+    errSum += e; errN++;
+    const over = (sim.rate - setpoint) * Math.sign(setpoint);
+    if (over > overshoot) overshoot = over;
+    uJitter = uJitter * 0.995 + Math.abs(u - prevU) * 0.005;
+    prevU = u;
+
+    trRate[head] = sim.rate;
+    trSet[head] = setpoint;
+    trU[head] = u;
+    head = (head + 1) % N;
+    if (filled < N) filled++;
+    sim.t += DT;
+  }
+
+  function css(v) {
+    return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  }
+
+  let W = 0, H = 0;
+  function resize() {
+    const r = box.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw() {
+    const accent = css('--accent') || '#F2662C';
+    const line = css('--line') || '#2C333B';
+    const mute = css('--mute') || '#78838E';
+
+    ctx.clearRect(0, 0, W, H);
+
+    const padL = 42, padR = 14, padT = 18;
+    const hRate = H * 0.62, hU = H * 0.20, gapY = 22;
+    const wPlot = W - padL - padR;
+
+    const SCALE = 620;   // °/s pada tepi atas grafik
+    const yMid = padT + hRate / 2;
+    const yOf = function (v) { return yMid - (v / SCALE) * (hRate / 2); };
+    const xOf = function (i) { return padL + (i / (N - 1)) * wPlot; };
+
+    // grid
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1;
+    ctx.font = '10px ui-monospace, Consolas, monospace';
+    ctx.fillStyle = mute;
+    ctx.textAlign = 'right';
+    [-600, -300, 0, 300, 600].forEach(function (v) {
+      const y = yOf(v);
+      ctx.globalAlpha = v === 0 ? 0.8 : 0.4;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillText(v, padL - 7, y + 3);
+    });
+    ctx.textAlign = 'left';
+    ctx.fillText('°/detik', padL + 2, padT + 9);
+
+    function path(arr, color, width, dash) {
+      ctx.beginPath();
+      ctx.setLineDash(dash || []);
+      for (let i = 0; i < filled; i++) {
+        const idx = (head - filled + i + N * 2) % N;
+        const x = xOf(i), y = yOf(arr[idx]);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    path(trSet, mute, 1.2, [5, 4]);       // yang diminta stik
+    path(trRate, accent, 1.8);            // yang dilakukan drone
+
+    // --- grafik bawah: perintah motor ---
+    const yU0 = padT + hRate + gapY + hU / 2;
+    ctx.strokeStyle = line;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(padL, yU0); ctx.lineTo(W - padR, yU0); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = mute;
+    ctx.fillText('perintah motor (P+I+D)', padL + 2, padT + hRate + gapY - 4);
+
+    ctx.beginPath();
+    for (let i = 0; i < filled; i++) {
+      const idx = (head - filled + i + N * 2) % N;
+      const x = xOf(i), y = yU0 - trU[idx] * (hU / 2);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.strokeStyle = accent;
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // --- metrik & diagnosis ---
+  let lastMetric = 0;
+  function metrics(now) {
+    if (now - lastMetric < 400) return;
+    lastMetric = now;
+    const over = Math.max(0, overshoot) / 300 * 100;
+    const err = errN ? errSum / errN : 0;
+    const noise = uJitter * 1000;
+
+    const mOver = document.getElementById('mOver');
+    const mErr = document.getElementById('mErr');
+    const mNoise = document.getElementById('mNoise');
+    mOver.textContent = over.toFixed(0) + ' %';
+    mErr.textContent = err.toFixed(0) + ' °/s';
+    mNoise.textContent = noise.toFixed(0) + (noise > 55 ? ' ⚠ panas' : '');
+
+    mOver.className = over > 35 ? 'bad' : over > 18 ? 'warn' : 'good';
+    mErr.className = err > 110 ? 'bad' : err > 60 ? 'warn' : 'good';
+    mNoise.className = noise > 55 ? 'bad' : noise > 32 ? 'warn' : 'good';
+
+    let mode = 'TERSETEL';
+    if (over > 35 || (gain.P > 105 && gain.D < 20)) mode = 'OSILASI — P TERLALU TINGGI';
+    else if (err > 110) mode = 'LEMBEK — P TERLALU RENDAH';
+    else if (noise > 55) mode = 'MOTOR PANAS — D TERLALU TINGGI';
+    else if (gain.I < 8 && bias) mode = 'MELESET TETAP — I = 0';
+    document.getElementById('simMode').textContent = mode;
+
+    overshoot = 0; errSum = 0; errN = 0;
+  }
+
+  let acc = 0, last = 0;
+  function loop(t) {
+    const dt = Math.min((t - last) / 1000, 0.1);
+    last = t;
+    acc += dt;
+    let guard = 0;
+    while (acc >= DT && guard++ < 400) { step(); acc -= DT; }
+    draw();
+    metrics(t);
+    requestAnimationFrame(loop);
+  }
+
+  // --- kontrol ---
+  ['P', 'I', 'D'].forEach(function (key) {
+    const s = document.getElementById('s' + key);
+    const v = document.getElementById('v' + key);
+    s.addEventListener('input', function () {
+      gain[key] = +s.value;
+      v.textContent = s.value;
+      if (key === 'I' && gain.I === 0) sim.integral = 0;
+    });
+  });
+
+  document.querySelectorAll('[data-pid]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const p = b.dataset.pid.split(',').map(Number);
+      ['P', 'I', 'D'].forEach(function (key, i) {
+        gain[key] = p[i];
+        document.getElementById('s' + key).value = p[i];
+        document.getElementById('v' + key).textContent = p[i];
+      });
+      sim.integral = 0;
+    });
+  });
+
+  document.getElementById('bGust').addEventListener('click', function () {
+    gust = 2600;   // hembusan mendadak
+  });
+
+  const bBias = document.getElementById('bBias');
+  bBias.addEventListener('click', function () {
+    bias = bias ? 0 : 1;
+    bBias.setAttribute('aria-pressed', String(!!bias));
+  });
+
+  // --- tombol salin CLI ---
+  const bCopy = document.getElementById('bCopy');
+  if (bCopy) {
+    bCopy.addEventListener('click', function () {
+      const text = document.getElementById('cliDump').innerText;
+      navigator.clipboard.writeText(text).then(function () {
+        bCopy.textContent = 'Tersalin ✓';
+        setTimeout(function () { bCopy.textContent = 'Salin'; }, 1600);
+      }, function () {
+        bCopy.textContent = 'Gagal — salin manual';
+      });
+    });
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

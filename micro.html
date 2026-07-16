@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Versi Hemat — Micro Whoop untuk Belajar</title>
+<meta name="description" content="Alternatif hemat: micro whoop 75mm untuk belajar terbang. Model 3D bisa diurai, dilihat rangka & label, komponen, anggaran jujur, dan perbandingan dengan rancangan 5 inci.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+  img, canvas { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; }
+  ol, ul { list-style: none; }
+  html { color-scheme: light dark; }
+
+  :root {
+    --ground: #0E1216; --surface: #171C22; --surface-2: #1E242B; --line: #2C333B;
+    --ink: #E6EAEE; --ink-2: #A8B2BC; --mute: #78838E; --accent: #F2662C;
+    --accent-dim: rgba(242,102,44,0.14);
+    --ok: #4FB286; --warn: #E0B341; --crit: #E2574C; --blue: #4FA3D1;
+    --display: "Bahnschrift", "Oswald", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+    --body: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    --r: 3px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --ground:#F1F0ED; --surface:#FFF; --surface-2:#F7F6F3; --line:#D6D6D2;
+      --ink:#15191D; --ink-2:#414951; --mute:#6E7780; --accent:#D24A11; --accent-dim:rgba(210,74,17,0.10); }
+  }
+  :root[data-theme="dark"] { --ground:#0E1216; --surface:#171C22; --surface-2:#1E242B; --line:#2C333B;
+    --ink:#E6EAEE; --ink-2:#A8B2BC; --mute:#78838E; --accent:#F2662C; --accent-dim:rgba(242,102,44,0.14); }
+  :root[data-theme="light"] { --ground:#F1F0ED; --surface:#FFF; --surface-2:#F7F6F3; --line:#D6D6D2;
+    --ink:#15191D; --ink-2:#414951; --mute:#6E7780; --accent:#D24A11; --accent-dim:rgba(210,74,17,0.10); }
+
+  body { background: var(--ground); color: var(--ink); font-family: var(--body);
+    font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px 90px; }
+
+  header.top { border-bottom: 1px solid var(--line); padding: 30px 0 22px; margin-bottom: 26px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 4.2vw, 44px);
+    line-height: 1.04; margin-top: 6px; text-wrap: balance; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--ink-2); max-width: 66ch; margin-top: 10px; }
+  .nav { display: flex; gap: 16px; margin-top: 16px; font-family: var(--mono); font-size: 12px; flex-wrap: wrap; }
+  .nav a { color: var(--mute); text-decoration: none; border-bottom: 1px solid transparent; }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+
+  .honest { background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--warn);
+    border-radius: var(--r); padding: 16px 18px; margin-bottom: 28px; }
+  .honest b { color: var(--ink); }
+  .honest p { color: var(--ink-2); font-size: 14.5px; }
+  .honest p + p { margin-top: 8px; }
+
+  /* ---- viewer ---- */
+  .studio { display: grid; grid-template-columns: minmax(0,1.72fr) minmax(240px,1fr); gap: 18px; margin-bottom: 30px; }
+  .stage { position: relative; background:
+      radial-gradient(ellipse 70% 55% at 50% 42%, rgba(242,102,44,0.07), transparent 70%), #0A0D10;
+    border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+    aspect-ratio: 4/3; touch-action: none; cursor: grab; }
+  .stage:active { cursor: grabbing; }
+  .stage canvas { width: 100%; height: 100%; }
+  .hud { position: absolute; left: 12px; top: 12px; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.08em; color: var(--mute); text-transform: uppercase; pointer-events: none; }
+  .hud b { color: var(--accent); font-weight: 600; }
+  .hint { position: absolute; right: 12px; bottom: 10px; font-family: var(--mono);
+    font-size: 10.5px; color: var(--mute); pointer-events: none; }
+  .label { position: absolute; left: 0; top: 0; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--ink);
+    background: var(--surface); background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid var(--line); border-left: 2px solid var(--accent); padding: 2px 7px;
+    white-space: nowrap; pointer-events: none; transform: translate(-50%,-50%);
+    opacity: 0; transition: opacity 0.18s ease; }
+  .label.on { opacity: 1; }
+
+  .rail { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+  .panel h4 { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mute); margin-bottom: 10px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btns button { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 2px;
+    padding: 6px 9px; cursor: pointer; transition: background 0.14s, color 0.14s, border-color 0.14s; }
+  .btns button:hover { color: var(--ink); border-color: var(--mute); }
+  .btns button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btns button[aria-pressed="true"] { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .parts { display: flex; flex-direction: column; gap: 1px; }
+  .part { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 9px;
+    padding: 6px 7px; background: transparent; border: 0; border-radius: 2px; text-align: left;
+    font-family: var(--body); font-size: 13px; color: var(--ink-2); cursor: pointer; width: 100%; }
+  .part:hover { background: var(--surface-2); color: var(--ink); }
+  .part[aria-pressed="true"] { background: var(--accent-dim); color: var(--ink); }
+  .part .sw { width: 10px; height: 10px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.14); }
+  .part .qty { font-family: var(--mono); font-size: 10.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+
+  /* ---- specs + kenapa ---- */
+  .why { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.3fr); gap: 22px; margin-bottom: 34px; align-items: start; }
+  .why h2 { font-family: var(--display); font-size: 23px; font-weight: 700; line-height: 1.1; margin-bottom: 12px; }
+  .specs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--line);
+    border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .specs div { background: var(--surface); padding: 10px 12px; }
+  .specs span { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+  .specs b { display: block; font-family: var(--display); font-size: 17px; color: var(--ink); }
+  .why p { font-size: 13.5px; color: var(--ink-2); }
+  .why p + p { margin-top: 8px; }
+  .why strong { color: var(--ink); }
+
+  section { padding-top: 40px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--line);
+    padding-bottom: 10px; margin-bottom: 22px; }
+  .sec-head .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    color: var(--mute); text-transform: uppercase; white-space: nowrap; }
+  h3 { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: 0.01em; }
+  p.lede { color: var(--ink-2); max-width: 72ch; margin-bottom: 18px; }
+
+  .tscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+  thead th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--mute); text-align: left; padding: 9px 13px; background: var(--surface-2);
+    border-bottom: 1px solid var(--line); white-space: nowrap; }
+  tbody td { padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--ink-2); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.name { color: var(--ink); font-weight: 600; }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tfoot td { padding: 10px 13px; border-top: 2px solid var(--accent); font-family: var(--mono);
+    font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; background: var(--surface-2); }
+  .buy { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--accent); margin-top: 2px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; }
+  .card.rail2 { border-left: 2px solid var(--accent); }
+  .card .kv { font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--mute); margin-bottom: 6px; }
+  .card h4 { font-family: var(--display); font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+  .card p { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line);
+    border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .cmp > div { background: var(--surface); padding: 16px 18px; }
+  .cmp .h { font-family: var(--display); font-size: 19px; font-weight: 700; margin-bottom: 3px; }
+  .cmp .big { font-family: var(--display); font-size: 30px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; }
+  .cmp.pick .big { color: var(--ok); }
+  .cmp ul { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .cmp li { font-size: 12.5px; color: var(--ink-2); padding-left: 14px; position: relative; line-height: 1.4; }
+  .cmp li::before { content: "—"; position: absolute; left: 0; color: var(--mute); }
+
+  .note { background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--accent);
+    border-radius: var(--r); padding: 13px 16px; margin-top: 16px; font-size: 14px; color: var(--ink-2); }
+  .note.warn { border-left-color: var(--warn); }
+  .note b { color: var(--ink); }
+
+  footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; color: var(--mute); display: flex;
+    justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 880px) { .studio, .cmp, .why { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:99999;background-repeat:repeat;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27250%27%3E%3Ctext%20x%3D%2714%27%20y%3D%27135%27%20transform%3D%27rotate%28-24%20200%20125%29%27%20fill%3D%27white%27%20fill-opacity%3D%270.055%27%20font-family%3D%27monospace%27%20font-size%3D%2715%27%20font-weight%3D%27bold%27%3ECONFIDENTIAL%20%20-%20%20%28c%29%20HERU%20TRIYADI%202026%3C/text%3E%3C/svg%3E');"></div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Versi Hemat · Alternatif Anggaran</div>
+    <h1>Micro Whoop 75 mm — <em>Jalan Termurah untuk Mulai</em></h1>
+    <p class="sub">Bila anggaran jadi pertimbangan utama, inilah titik masuk paling murah dan paling aman: drone mungil berpelindung (ducted) yang bisa diterbangkan di dalam ruangan. Dokumen ini adalah <strong>alternatif</strong>, bukan pengganti — rancangan 5 inci tetap tersimpan utuh.</p>
+    <div class="nav">
+      <a href="index.html">← Rancangan 5 inci (Rp 12,3 jt)</a>
+      <a href="#banding">Perbandingan langsung</a>
+      <a href="#anggaran">Anggaran</a>
+    </div>
+  </header>
+
+  <div class="honest">
+    <p><b>Angka jujur lebih dulu.</b> Sebelumnya saya sebut "~Rp 2,7 juta" — itu angka paling optimistis dan jarang tercapai untuk rakitan sendiri. Yang <strong>realistis untuk micro whoop rakitan + perlengkapan termurah adalah Rp 3–3,7 juta.</strong> Angka Rp 2,7 jt hanya mungkin bila kamu beli whoop <em>jadi</em> (BNF) yang diproduksi massal, atau menggunakan kembali perlengkapan yang sudah ada.</p>
+    <p>Semua harga di halaman ini tetap <strong>estimasi</strong> — belum dicek ke marketplace.</p>
+  </div>
+
+  <!-- ============ SLOT GAMBAR ASLI (paket hemat) ============ -->
+  <div style="margin-bottom:30px;">
+    <div style="position:relative;border:2px dashed var(--line);border-radius:var(--r);background:var(--surface);aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:8px;overflow:hidden;">
+      <img src="desain-hemat.jpg" alt="Desain drone" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0A0D10;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:9px;">
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);">Slot Gambar Asli Kamu</div>
+        <div style="font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);">Taruh render desainmu di sini</div>
+        <div style="font-size:13px;color:var(--ink-2);max-width:50ch;">Simpan gambarmu ke folder <b style="color:var(--ink);">web</b> dengan nama persis:</div>
+        <code style="font-family:var(--mono);font-size:12.5px;color:var(--accent);background:var(--surface-2);border:1px solid var(--line);padding:3px 9px;border-radius:2px;">desain-hemat.jpg</code>
+        <div style="font-size:12px;color:var(--mute);margin-top:4px;">lalu muat ulang halaman — gambar otomatis muncul.</div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:8px;text-align:center;">Gambar desainmu (foto-realistis) sebagai sampul paket hemat — model 3D interaktif ada di bawah.</div>
+
+    <!-- Diagram terurai / anatomi QUADCRAFT F1 -->
+    <figure style="margin:22px 0 0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#0A0D10;">
+      <img src="desain-hemat-anatomi.jpg" alt="Anatomi terurai QUADCRAFT F1" style="width:100%;display:block;" onerror="this.parentElement.style.display='none';">
+      <figcaption style="font-family:var(--mono);font-size:11px;color:var(--mute);padding:9px 13px;border-top:1px solid var(--line);line-height:1.5;">Diagram terurai QUADCRAFT F1 — empat panel: tampilan utama berlabel, detail sistem kontrol (heatsink, FC F7, ESC, IMU), dan diagram arsitektur sinyal &amp; daya. Render buatanmu sendiri.</figcaption>
+    </figure>
+  </div>
+
+  <!-- ============ VIEWER LENGKAP ============ -->
+  <div class="studio">
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="hud">MODE <b id="hudMode">SOLID</b> · 75 MM · <b id="hudW">45 G</b></div>
+      <div class="hint">seret = putar · scroll = zoom</div>
+      <div id="labels"></div>
+    </div>
+    <div class="rail">
+      <div class="panel">
+        <h4>Tampilan</h4>
+        <div class="btns">
+          <button id="bRotate" aria-pressed="true">Auto-putar</button>
+          <button id="bSpin" aria-pressed="false">Propeller</button>
+          <button id="bExplode" aria-pressed="false">Urai</button>
+          <button id="bWire" aria-pressed="false">Rangka</button>
+          <button id="bLabel" aria-pressed="true">Label</button>
+          <button id="bReset">Reset</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Komponen — klik untuk sorot</h4>
+        <div class="parts" id="partList"></div>
+      </div>
+      <div class="panel">
+        <h4>Sudut pandang</h4>
+        <div class="btns">
+          <button data-view="iso">Isometrik</button>
+          <button data-view="top">Atas</button>
+          <button data-view="front">Depan</button>
+          <button data-view="side">Samping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ KENAPA + SPESIFIKASI ============ -->
+  <div class="why">
+    <div>
+      <h2>Kenapa whoop untuk pemula?</h2>
+      <div class="specs">
+        <div><span>Kelas</span><b>75 mm</b></div>
+        <div><span>Bobot</span><b>~45 g</b></div>
+        <div><span>Baterai</span><b>1S 300mAh</b></div>
+        <div><span>Propeller</span><b>40 mm</b></div>
+        <div><span>Terbang</span><b>3–4 mnt</b></div>
+        <div><span>Biaya drone</span><b>~1,5 jt</b></div>
+      </div>
+    </div>
+    <div>
+      <p><strong>Propeller berpelindung (duct).</strong> Bilahnya terbungkus cincin plastik — coba tekan tombol <em>Urai</em> lalu <em>Rangka</em> untuk melihat propeller berada <em>di dalam</em> cincinnya. Ini yang membuatnya aman menabrak dinding, perabot, bahkan tangan, dan bisa diterbangkan di dalam rumah.</p>
+      <p><strong>Bobot 45 gram.</strong> Menabrak apa pun nyaris tak menimbulkan kerusakan — pada drone maupun pada yang ditabrak. Bandingkan dengan 685 gram pada 25.000 RPM di versi 5 inci.</p>
+      <p><strong>Otak yang sama.</strong> Klik <em>AIO board</em> di panel untuk menyorotnya: satu papan menggabung flight controller, ESC, dan penerima — menjalankan Betaflight yang menerbangkan drone.</p>
+      <p><strong>Kamera menunduk + Raspberry Pi.</strong> Tekan <em>Urai</em>, lalu klik <em>Raspberry Pi Zero 2 W</em> dan <em>Kamera bawah</em>: Pi ditumpuk di atas AIO board sebagai otak kedua untuk <strong>merekam</strong>, dan kameranya <strong>menghadap bawah</strong> agar bisa mendokumentasikan objek di bawah drone. FC tetap yang menerbangkan — Pi tidak menyentuh kendali terbang.</p>
+    </div>
+  </div>
+
+  <!-- ============ PERBANDINGAN ============ -->
+  <section id="banding">
+    <div class="sec-head"><span class="tag">01 / Perbandingan</span><h3>Micro vs 5 inci — apa yang kamu tukar</h3></div>
+    <p class="lede">Keduanya mengajarkan hal yang sama: cara terbang FPV dan cara kerja sistemnya. Yang berbeda adalah biaya, tempat terbang, dan seberapa "serius" rasanya.</p>
+    <div class="cmp">
+      <div class="pick">
+        <div class="h">Micro Whoop</div>
+        <div class="big">Rp 3–3,7 jt</div>
+        <ul>
+          <li>Terbang di dalam ruangan, aman dekat orang</li>
+          <li>Crash nyaris tak merusak apa pun</li>
+          <li>Tidak butuh charger mahal (isi lewat USB)</li>
+          <li>Tidak butuh smoke stopper (baterai 1S kecil)</li>
+          <li>Bisa terbang hari ini juga, tak menunggu lapangan</li>
+          <li>Gambar SD kecil · terbang 3–4 menit · tak bertenaga di luar ruangan</li>
+        </ul>
+      </div>
+      <div>
+        <div class="h">Freestyle 5 inci</div>
+        <div class="big" style="color:var(--blue)">Rp 12,3 jt</div>
+        <ul>
+          <li>Akrobatik penuh, dive, kecepatan tinggi</li>
+          <li>Gambar tajam, terbang di lapangan terbuka</li>
+          <li>Crash bisa merusak komponen jutaan rupiah</li>
+          <li>Butuh charger, smoke stopper, area terbuka</li>
+          <li>Butuh perakitan &amp; penyolderan penuh</li>
+          <li>Terasa seperti "drone sungguhan" · 4–6 menit</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note"><b>Biaya terbesar tetap sama.</b> Yang membuat anggaran 5 inci membengkak adalah <strong>goggles dan radio</strong> (Rp 5,1 jt). Whoop memangkas biaya <em>drone</em>, tapi goggles dan radio tetap dibutuhkan. Itu sebabnya versi hemat ini memakai goggles box murah dan radio ringkas — di situlah penghematan sesungguhnya, bukan pada ukuran drone.</div>
+  </section>
+
+  <!-- ============ DUA JALUR ============ -->
+  <section>
+    <div class="sec-head"><span class="tag">02 / Dua Jalan</span><h3>Rakit sendiri, atau beli jadi?</h3></div>
+    <p class="lede">Untuk micro, ada pilihan yang tidak ada di kelas 5 inci: membeli whoop yang <strong>sudah jadi</strong> (BNF — Bind and Fly). Karena diproduksi massal, seringkali malah lebih murah daripada merakit sendiri.</p>
+    <div class="cards">
+      <div class="card rail2">
+        <div class="kv">Jalur A · Beli jadi (BNF)</div>
+        <h4>Termurah — ~Rp 1,0–1,3 jt</h4>
+        <p>Whoop siap terbang seperti <strong>Happymodel Mobula6</strong> atau <strong>BetaFPV Meteor65 Pro</strong>. Tinggal bind ke radio dan terbang. Cocok kalau tujuanmu <em>belajar terbang</em>, bukan belajar merakit.</p>
+        <p style="margin-top:8px;color:var(--mute);font-size:12px">Kekurangan: kamu tidak belajar menyolder atau memahami isinya.</p>
+      </div>
+      <div class="card">
+        <div class="kv">Jalur B · Rakit sendiri</div>
+        <h4>~Rp 1,5 jt · belajar membangun</h4>
+        <p>Rakit dari frame, AIO board, motor, dan kamera terpisah. Sedikit lebih mahal, tapi kamu belajar keterampilan yang sama dengan yang dibutuhkan untuk membangun 5 inci nanti — dalam skala yang lebih murah dan aman.</p>
+        <p style="margin-top:8px;color:var(--mute);font-size:12px">Ini yang dirinci di tabel di bawah.</p>
+      </div>
+    </div>
+    <div class="note warn"><b>Kalau tujuan awalmu "belajar merakit dari nol"</b> (seperti pada proyek 5 inci), pilih <b>Jalur B</b>. Kalau tujuanmu murni "bisa terbang secepat &amp; semurah mungkin", <b>Jalur A</b> lebih masuk akal — dan keterampilan merakit bisa ditunda ke proyek 5 inci nanti.</div>
+  </section>
+
+  <!-- ============ ANGGARAN ============ -->
+  <section id="anggaran">
+    <div class="sec-head"><span class="tag">03 / Anggaran</span><h3>Rincian — Jalur B (rakit sendiri)</h3></div>
+    <p class="lede">Komponen whoop berbeda dari 5 inci: banyak fungsi digabung dalam satu papan <strong>AIO</strong> (All-In-One: flight controller, ESC, dan penerima jadi satu), sehingga penyolderan jauh lebih sedikit.</p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Komponen</th><th>Produk contoh &amp; catatan</th><th class="n">Rp</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Frame whoop 75 mm</td>
+            <td>Duct pelindung propeller. Ringan &amp; lentur agar tahan benturan.<span class="buy">▸ cari: "whoop frame 75mm 1S"</span></td><td class="n">150 rb</td></tr>
+          <tr><td class="name">AIO board (FC+ESC+RX)</td>
+            <td>Satu papan menggabung otak, ESC, dan penerima ELRS. Inti dari whoop.<span class="buy">▸ Happymodel X12 AIO ELRS</span></td><td class="n">520 rb</td></tr>
+          <tr><td class="name">Motor brushless (4×)</td>
+            <td>Ukuran 1102 / 1202, sekitar 18.000 KV untuk 1S.<span class="buy">▸ cari: "1102 18000kv whoop motor"</span></td><td class="n">360 rb</td></tr>
+          <tr><td class="name">Kamera + VTX</td>
+            <td>Sering digabung jadi satu unit nano analog.<span class="buy">▸ Caddx Ant / RunCam Nano</span></td><td class="n">220 rb</td></tr>
+          <tr><td class="name">Propeller 40 mm</td>
+            <td>Beli banyak — tetap komponen yang paling sering rusak.<span class="buy">▸ Gemfan 40mm, 5 set</span></td><td class="n">60 rb</td></tr>
+          <tr><td class="name">Baterai 1S 300 mAh (4×)</td>
+            <td>Kecil, aman, diisi lewat USB. Beli 4–6 untuk terbang beruntun.<span class="buy">▸ GNB / BetaFPV 1S 300mAh</span></td><td class="n">220 rb</td></tr>
+          <tr><td class="name">Barang kecil</td>
+            <td>Konektor, busa canopy, zip tie kecil.</td><td class="n">100 rb</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="2">Subtotal drone (Jalur B)</td><td class="n">± 1 630 rb</td></tr></tfoot>
+      </table>
+    </div>
+
+    <h3 style="font-size:19px;margin:26px 0 12px">Perlengkapan — versi termurah</h3>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Barang</th><th>Produk contoh &amp; catatan</th><th class="n">Rp</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Radio / TX</td>
+            <td>Ringkas &amp; sudah ELRS agar cocok dengan AIO board.<span class="buy">▸ RadioMaster Pocket ELRS</span></td><td class="n">950 rb</td></tr>
+          <tr><td class="name">Goggles</td>
+            <td>Model box analog paling murah. Bisa di-upgrade nanti tanpa mengubah drone.<span class="buy">▸ Eachine EV800DM / box analog</span></td><td class="n">900 rb</td></tr>
+          <tr><td class="name">Charger 1S</td>
+            <td>Whoop diisi lewat papan USB murah — <strong>tak perlu charger LiPo mahal</strong>.<span class="buy">▸ USB 1S charger board 6-port</span></td><td class="n">150 rb</td></tr>
+          <tr><td class="name">Alat solder</td>
+            <td>Solder + multimeter. Penyolderan whoop jauh lebih sedikit, tapi tetap perlu.<span class="buy">▸ solder 60 W + multimeter</span></td><td class="n">400 rb</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="2">Subtotal perlengkapan</td><td class="n">± 2 400 rb</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="cards" style="margin-top:22px">
+      <div class="card rail2">
+        <div class="kv">Total realistis · Jalur B</div>
+        <h4 style="font-size:26px;color:var(--accent)">± Rp 4,0 jt</h4>
+        <p>Rakit sendiri (1,6 jt) + perlengkapan termurah (2,4 jt). Kamu belajar merakit sekaligus terbang.</p>
+      </div>
+      <div class="card rail2" style="border-left-color:var(--ok)">
+        <div class="kv">Total realistis · Jalur A</div>
+        <h4 style="font-size:26px;color:var(--ok)">± Rp 3,3 jt</h4>
+        <p>Whoop jadi/BNF (1,2 jt) + perlengkapan termurah (2,4 jt), dikurangi charger yang biasanya sudah termasuk. Termurah, tapi tak belajar merakit.</p>
+      </div>
+      <div class="card">
+        <div class="kv">Lawan: rancangan 5 inci</div>
+        <h4 style="font-size:26px;color:var(--blue)">Rp 12,3 jt</h4>
+        <p>Untuk perbandingan. Selisihnya sekitar <strong>Rp 8–9 juta</strong> — hampir seluruhnya karena goggles &amp; radio yang lebih murah, plus drone yang jauh lebih kecil.</p>
+      </div>
+    </div>
+
+    <div class="note"><b>Jujur soal angka Rp 2,7 jt.</b> Itu hanya tercapai jika: beli whoop BNF paling murah, goggles box paling murah (~Rp 700 rb), radio bekas, dan tanpa membeli alat solder (karena BNF tak perlu disolder). Mungkin, tapi ketat. Angka Rp 3,3–4 jt jauh lebih realistis dan tidak akan mengecewakan di kasir.</div>
+  </section>
+
+  <!-- ============ REKOMENDASI ============ -->
+  <section>
+    <div class="sec-head"><span class="tag">04 / Saran</span><h3>Rekomendasi jujur</h3></div>
+    <div class="cards">
+      <div class="card rail2">
+        <div class="kv">Kalau tujuannya belajar &amp; hemat</div>
+        <h4>Mulai dari whoop BNF (Jalur A)</h4>
+        <p>~Rp 3,3 jt. Terbang minggu ini, di ruang tamu, tanpa risiko. Setelah nyaman terbang, uangnya "tidak hilang" — radio &amp; goggles-nya terbawa ke drone berikutnya.</p>
+      </div>
+      <div class="card rail2">
+        <div class="kv">Kalau tetap ingin belajar merakit</div>
+        <h4>Whoop rakitan (Jalur B)</h4>
+        <p>~Rp 4,0 jt. Keterampilan menyolder &amp; konfigurasi yang sama dengan proyek 5 inci, tapi dengan risiko dan biaya jauh lebih kecil bila ada yang salah.</p>
+      </div>
+      <div class="card rail2" style="border-left-color:var(--blue)">
+        <div class="kv">Jalur bertahap paling hemat total</div>
+        <h4>Whoop dulu → 5 inci nanti</h4>
+        <p>Beli whoop BNF murah untuk belajar (~3,3 jt). Saat sudah mahir, upgrade ke 5 inci — dan karena radio sudah punya, biaya naik kelas berkurang. Total bertahap, risiko paling kecil.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Versi hemat · Micro whoop 75 mm · alternatif dari rancangan 5 inci</span>
+    <span><a href="index.html">← Kembali ke rancangan 5 inci</a></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- geometri dasar ----
+  function box(w,h,d){ const X=w/2,Y=h/2,Z=d/2; return {
+    verts:[[-X,-Y,Z],[X,-Y,Z],[X,Y,Z],[-X,Y,Z],[-X,-Y,-Z],[X,-Y,-Z],[X,Y,-Z],[-X,Y,-Z]],
+    faces:[[0,1,2,3],[5,4,7,6],[4,0,3,7],[1,5,6,2],[3,2,6,7],[4,5,1,0]] }; }
+  function cyl(r,h,seg){ seg=seg||16; const v=[],f=[],Y=h/2;
+    for(let i=0;i<seg;i++){const a=i/seg*Math.PI*2; v.push([Math.cos(a)*r,Y,Math.sin(a)*r],[Math.cos(a)*r,-Y,Math.sin(a)*r]);}
+    for(let i=0;i<seg;i++){const j=(i+1)%seg; f.push([i*2,j*2,j*2+1,i*2+1]);}
+    const t=[],b=[]; for(let i=0;i<seg;i++){t.push(i*2);b.push((seg-1-i)*2+1);} f.push(t,b); return {verts:v,faces:f}; }
+  // cincin duct (dua dinding + rim) — pelindung propeller
+  function ductRing(rO,rI,h,seg){ seg=seg||24; const v=[],f=[],Y=h/2;
+    for(let i=0;i<seg;i++){const a=i/seg*Math.PI*2,c=Math.cos(a),s=Math.sin(a);
+      v.push([c*rO,Y,s*rO],[c*rO,-Y,s*rO],[c*rI,Y,s*rI],[c*rI,-Y,s*rI]);}
+    for(let i=0;i<seg;i++){const j=(i+1)%seg,A=i*4,B=j*4;
+      f.push([A,B,B+1,A+1]); f.push([A+3,B+3,B+2,A+2]); f.push([A+2,B+2,B,A]); f.push([A+1,B+1,B+3,A+3]); }
+    return {verts:v,faces:f}; }
+  function blade(len,chord,thick){ const t=thick/2,v=[],st=3;
+    for(let i=0;i<=st;i++){const ff=i/st,z=4+ff*len,c=chord*(0.6+0.6*Math.sin(Math.PI*(0.3+ff*0.6)));
+      v.push([-c/2,-t,z],[c/2,-t,z],[c/2,t,z],[-c/2,t,z]);}
+    const f=[]; for(let i=0;i<st;i++){const A=i*4,B=(i+1)*4; f.push([A,B,B+1,A+1],[A+1,B+1,B+2,A+2],[A+2,B+2,B+3,A+3],[A+3,B+3,B,A]);}
+    f.push([0,1,2,3]); return {verts:v,faces:f}; }
+
+  const C = { duct:'#C6CDD4', duct2:'#AAB2BA', board:'#2E4A38', batt:'#16191E',
+    battTop:'#D8532A', cam:'#20252B', lens:'#4A7FA0', motor:'#9BA5AF', accent:'#F2662C', black:'#191D22',
+    pi:'#2C623E', piGold:'#B88A2E' };
+
+  const parts = []; let idc = 0;
+  function add(group,label,geo,o){ o=o||{}; parts.push({ id:idc++, group:group, label:label||null,
+    color:o.color||C.duct, verts:geo.verts, faces:geo.faces, pos:o.pos||[0,0,0], rx:o.rx||0, ry:o.ry||0,
+    spin:o.spin||0, explode:o.explode||[0,0,0], anchor:o.anchor||null }); }
+
+  const D = 28;   // pusat duct di ±28 mm
+  const corners = [[D,D,1],[-D,D,-1],[D,-D,-1],[-D,-D,1]];
+
+  // pelat tengah (AIO)
+  add('board','AIO board (FC+ESC+RX)', box(30,2,30), { color:C.board, pos:[0,3,0], explode:[0,-42,0], anchor:[0,3,0] });
+  // empat duct + motor + propeller
+  corners.forEach(function(c,i){
+    const ex = [c[0]*0.55, 0, c[1]*0.55];
+    add('duct', i===0?'Duct pelindung 75mm':null, ductRing(20,17,13,24), { color:C.duct, pos:[c[0],6,c[1]], explode:ex, anchor:i===0?[c[0],13,c[1]]:null });
+    add('motor', i===0?'Motor brushless 1102':null, cyl(3.5,4,10), { color:C.motor, pos:[c[0],4,c[1]], explode:[c[0]*0.55,-10,c[1]*0.55], anchor:i===0?[c[0],2,c[1]]:null });
+    add('motor', null, cyl(3,5,10), { color:C.accent, pos:[c[0],7.5,c[1]], explode:[c[0]*0.55,-10,c[1]*0.55] });
+    for(let b=0;b<2;b++){
+      add('prop', (i===0&&b===0)?'Propeller 40mm':null, blade(13,5,1), { color:C.duct2, pos:[c[0],9,c[1]], ry:b*Math.PI, spin:c[2], explode:[c[0]*0.55,38,c[1]*0.55], anchor:(i===0&&b===0)?[c[0],11,c[1]]:null });
+    }
+  });
+  // Raspberry Pi Zero 2 W (companion untuk rekam) — ditumpuk di atas AIO board
+  add('pi','Raspberry Pi Zero 2 W', box(30,3,60), { color:C.pi, pos:[0,9,-2], explode:[0,40,0], anchor:[0,10,-2] });
+  add('pi', null, box(9,2,9), { color:C.black, pos:[0,11,-16], explode:[0,40,0] });        // chip SoC
+  add('pi', null, box(28,1.5,4), { color:C.piGold, pos:[0,11,20], explode:[0,40,0] });      // pin header GPIO
+  // Kamera perekam menghadap BAWAH (untuk rekam & inspeksi)
+  add('cam','Kamera bawah (rekam)', box(14,7,12), { color:C.cam, pos:[0,-1,6], explode:[0,-45,28], anchor:[0,-4,6] });
+  add('cam', null, cyl(3,4,12), { color:C.lens, pos:[0,-4.5,6], explode:[0,-45,28] });       // lensa menghadap bawah
+  // baterai 1S di atas Pi
+  add('batt','Baterai 1S 300mAh', box(11,6,34), { color:C.batt, pos:[0,22,-2], explode:[0,60,0], anchor:[0,25,-2] });
+  add('batt', null, box(11.4,2,34), { color:C.battTop, pos:[0,25.5,-2], explode:[0,60,0] });
+
+  // ---- renderer ----
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const host = document.getElementById('stage'), labelBox = document.getElementById('labels');
+  const HOME = { yaw:-0.7, pitch:0.42, dist:230 };
+  const cam = { yaw:HOME.yaw, pitch:HOME.pitch, dist:HOME.dist };
+  const PIVOT = [0,10,0], LIGHT = norm([-0.42,0.72,0.55]);
+  const state = { autoRotate:true, spin:false, explode:0, explodeTarget:0, wire:false, labels:true, highlight:null };
+  let W=0,H=0,focal=900,spinAngle=0,drag=null;
+
+  function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+  function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+  function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+  function norm(v){const m=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/m,v[1]/m,v[2]/m];}
+  function rotX(p,a){const c=Math.cos(a),s=Math.sin(a);return [p[0],p[1]*c-p[2]*s,p[1]*s+p[2]*c];}
+  function rotY(p,a){const c=Math.cos(a),s=Math.sin(a);return [p[0]*c-p[2]*s,p[1],p[0]*s+p[2]*c];}
+  function tint(hex,k,al){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    const f=v=>Math.max(0,Math.min(255,Math.round(v*k))); return 'rgba('+f(r)+','+f(g)+','+f(b)+','+(al===undefined?1:al)+')';}
+
+  function resize(){ const r=host.getBoundingClientRect(); if(!r.width)return;
+    const dpr=Math.min(window.devicePixelRatio||1,2); W=r.width;H=r.height;
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); focal=Math.max(560,H*2.4); }
+
+  function toWorld(v,p,ex){ let q=rotX(v,p.rx); q=rotY(q,p.ry+(p.spin?spinAngle*p.spin:0));
+    return [q[0]+p.pos[0]+p.explode[0]*ex, q[1]+p.pos[1]+p.explode[1]*ex, q[2]+p.pos[2]+p.explode[2]*ex]; }
+  function toView(w){ return rotX(rotY(sub(w,PIVOT),cam.yaw),cam.pitch); }
+  function project(v){ const zv=cam.dist-v[2]; if(zv<15)return null; const k=focal/zv; return [W/2+v[0]*k,H/2-v[1]*k+H*0.04,zv]; }
+
+  const labelEls = {};
+
+  function draw(){
+    if(!W)resize(); if(!W)return;
+    ctx.clearRect(0,0,W,H);
+    const ex = state.explode;
+    // bayangan (redup saat terurai)
+    const gs=focal/cam.dist, sy=H/2+H*0.04+18*gs*Math.max(0.12,Math.sin(cam.pitch));
+    ctx.save();ctx.filter='blur(7px)';ctx.globalAlpha=0.28*(1-ex*0.7);ctx.fillStyle='#000';
+    ctx.beginPath();ctx.ellipse(W/2,sy,70*gs,70*gs*Math.max(0.1,Math.abs(Math.sin(cam.pitch)))+3,0,0,Math.PI*2);ctx.fill();ctx.restore();
+
+    const polys=[];
+    for(let i=0;i<parts.length;i++){ const p=parts[i];
+      const dim = state.highlight!==null && p.group!==state.highlight;
+      const view=new Array(p.verts.length);
+      for(let j=0;j<p.verts.length;j++) view[j]=toView(toWorld(p.verts[j],p,ex));
+      for(let f=0;f<p.faces.length;f++){ const idx=p.faces[f]; const pts=[]; let depth=0,ok=true;
+        for(let k=0;k<idx.length;k++){ const s=project(view[idx[k]]); if(!s){ok=false;break;} pts.push(s);depth+=s[2]; }
+        if(!ok||pts.length<3)continue;
+        const n=norm(cross(sub(view[idx[1]],view[idx[0]]),sub(view[idx[2]],view[idx[0]])));
+        polys.push({ pts:pts, depth:depth/pts.length, light:Math.abs(dot(n,LIGHT)),
+          color:p.color, dim:dim, hot:state.highlight!==null&&p.group===state.highlight }); }
+    }
+    polys.sort((a,b)=>b.depth-a.depth);
+
+    for(let i=0;i<polys.length;i++){ const t=polys[i];
+      const shade=0.3+0.66*t.light, alpha=t.dim?0.13:1;
+      ctx.beginPath(); ctx.moveTo(t.pts[0][0],t.pts[0][1]);
+      for(let k=1;k<t.pts.length;k++)ctx.lineTo(t.pts[k][0],t.pts[k][1]); ctx.closePath();
+      if(state.wire){
+        ctx.strokeStyle=tint(t.hot?C.accent:t.color,1.9,t.dim?0.12:0.75); ctx.lineWidth=0.7; ctx.stroke();
+      } else {
+        ctx.fillStyle=tint(t.color,shade,alpha); ctx.fill();
+        ctx.strokeStyle=tint(t.color,shade*0.55,alpha*0.9); ctx.lineWidth=0.5; ctx.stroke();
+        if(t.hot){ ctx.strokeStyle='rgba(242,102,44,0.85)'; ctx.lineWidth=1; ctx.stroke(); }
+      }
+    }
+
+    // label mengambang
+    for(let i=0;i<parts.length;i++){ const p=parts[i]; if(!p.anchor||!p.label)continue;
+      let el=labelEls[p.id];
+      if(!el){ el=document.createElement('div'); el.className='label'; el.textContent=p.label; labelBox.appendChild(el); labelEls[p.id]=el; }
+      const w=[p.anchor[0]+p.explode[0]*ex, p.anchor[1]+p.explode[1]*ex, p.anchor[2]+p.explode[2]*ex];
+      const s=project(toView(w));
+      const visible = state.labels && s && (state.highlight===null||state.highlight===p.group);
+      if(visible){ el.style.transform='translate('+s[0]+'px,'+s[1]+'px) translate(-50%,-50%)'; el.classList.add('on'); }
+      else el.classList.remove('on');
+    }
+  }
+
+  let last=0;
+  function loop(t){ const dt=Math.min((t-last)/1000,0.05);last=t;
+    if(state.autoRotate&&!drag)cam.yaw+=dt*0.32;
+    if(state.spin)spinAngle+=dt*10;
+    state.explode += (state.explodeTarget-state.explode)*Math.min(dt*5,1);
+    draw(); requestAnimationFrame(loop); }
+
+  // ---- interaksi ----
+  host.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY}; host.setPointerCapture(e.pointerId);
+    state.autoRotate=false; document.getElementById('bRotate').setAttribute('aria-pressed','false'); });
+  host.addEventListener('pointermove',e=>{ if(!drag)return;
+    cam.yaw+=(e.clientX-drag.x)*0.008; cam.pitch=Math.max(-1.45,Math.min(1.45,cam.pitch+(e.clientY-drag.y)*0.006));
+    drag={x:e.clientX,y:e.clientY}; });
+  host.addEventListener('pointerup',()=>drag=null);
+  host.addEventListener('pointercancel',()=>drag=null);
+  host.addEventListener('wheel',e=>{e.preventDefault();cam.dist=Math.max(130,Math.min(430,cam.dist+e.deltaY*0.3));},{passive:false});
+
+  function toggle(id,key,cb){ const b=document.getElementById(id);
+    b.addEventListener('click',()=>{ state[key]=!state[key]; b.setAttribute('aria-pressed',String(state[key])); if(cb)cb(state[key]); }); }
+  toggle('bRotate','autoRotate'); toggle('bSpin','spin');
+  toggle('bWire','wire',v=>document.getElementById('hudMode').textContent=v?'RANGKA':'SOLID');
+  toggle('bLabel','labels');
+  document.getElementById('bExplode').addEventListener('click',function(){
+    const on=state.explodeTarget<0.5; state.explodeTarget=on?1:0; this.setAttribute('aria-pressed',String(on)); });
+  document.getElementById('bReset').addEventListener('click',function(){
+    cam.yaw=HOME.yaw;cam.pitch=HOME.pitch;cam.dist=HOME.dist; state.explodeTarget=0; state.highlight=null;
+    document.getElementById('bExplode').setAttribute('aria-pressed','false');
+    document.querySelectorAll('.part').forEach(b=>b.setAttribute('aria-pressed','false')); });
+
+  const VIEWS = { iso:{yaw:-0.7,pitch:0.42,dist:230}, top:{yaw:0,pitch:1.44,dist:230},
+    front:{yaw:Math.PI,pitch:0.05,dist:210}, side:{yaw:Math.PI/2,pitch:0.05,dist:210} };
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',function(){
+    const v=VIEWS[b.dataset.view]; cam.yaw=v.yaw;cam.pitch=v.pitch;cam.dist=v.dist;
+    state.autoRotate=false; document.getElementById('bRotate').setAttribute('aria-pressed','false'); }));
+
+  // daftar komponen
+  const GROUPS = [
+    { g:'board', n:'AIO board (FC+ESC+RX)', c:C.board, q:'5-in-1' },
+    { g:'pi', n:'Raspberry Pi Zero 2 W', c:C.pi, q:'rekam' },
+    { g:'duct', n:'Duct pelindung', c:C.duct, q:'×4' },
+    { g:'motor', n:'Motor brushless', c:C.accent, q:'×4' },
+    { g:'prop', n:'Propeller 40mm', c:C.duct2, q:'×4' },
+    { g:'cam', n:'Kamera bawah (rekam)', c:C.lens, q:'menunduk' },
+    { g:'batt', n:'Baterai 1S', c:C.battTop, q:'300mAh' }
+  ];
+  const list = document.getElementById('partList');
+  GROUPS.forEach(function(item){ const b=document.createElement('button'); b.className='part';
+    b.setAttribute('aria-pressed','false');
+    b.innerHTML='<span class="sw" style="background:'+item.c+'"></span><span>'+item.n+'</span><span class="qty">'+item.q+'</span>';
+    b.addEventListener('click',function(){ const on=state.highlight!==item.g; state.highlight=on?item.g:null;
+      document.querySelectorAll('.part').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed',String(on)); });
+    list.appendChild(b); });
+
+  window.addEventListener('resize',resize); resize(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

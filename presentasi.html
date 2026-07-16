@@ -1,0 +1,1651 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pengembangan Drone Modern — Diskusi Rancangan</title>
+<meta name="description" content="Deck diskusi pengembangan drone FPV modern: tren industri, rancangan teknis, firmware, anggaran, dan roadmap.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0B0E12;
+    --slide:     #12171D;
+    --panel:     #182029;
+    --line:      #253039;
+    --ink:       #ECEFF2;
+    --ink-2:     #A9B4BE;
+    --mute:      #6F7C88;
+    --accent:    #F2662C;
+    --accent-dk: #E05C22;
+
+    /* Palet kategorikal — divalidasi (lightness band, chroma, CVD, kontras) */
+    --s1: #E05C22;   /* oranye  — komponen inti / rancangan kami */
+    --s2: #3987e5;   /* biru    — pembanding */
+    --s3: #199e70;   /* hijau   — hemat / positif */
+    --s4: #c98500;   /* kuning  — perlengkapan */
+    --s5: #9085e9;   /* ungu    — premium / masa depan */
+
+    --ok:   #199e70;
+    --warn: #c98500;
+    --crit: #e05252;
+
+    --display: "Bahnschrift", "Oswald", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+    --body:    "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:    "Cascadia Mono", Consolas, "SF Mono", ui-monospace, monospace;
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- Panggung 16:9 ---------- */
+  #deck {
+    position: relative;
+    width: 100vw;
+    height: 56.25vw;
+    max-height: 100vh;
+    max-width: 177.78vh;
+    background: var(--slide);
+    overflow: hidden;
+    /* semua ukuran slide dalam satuan cqw → skala mengikuti lebar panggung */
+    container-type: inline-size;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 4.2cqw 5cqw 4.6cqw;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+  }
+  .slide.live { display: flex; }
+  .slide.in  { animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .slide.out { animation: slideOut 0.28s ease forwards; }
+
+  @keyframes slideIn  { from { opacity: 0; transform: translateY(1.6cqw); } to { opacity: 1; transform: none; } }
+  @keyframes slideOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-0.8cqw); } }
+
+  /* Reveal bertahap: tiap elemen ber-atribut data-r muncul berurutan */
+  .slide.live [data-r] {
+    opacity: 0;
+    animation: rise 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(0.09s * var(--i, 0) + 0.12s);
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(1cqw); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide.in, .slide.out, .slide.live [data-r] { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
+
+  /* ---------- Tipografi ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.85cqw;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.7cqw;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 4.6cqw;
+    line-height: 1.02;
+    letter-spacing: 0.005em;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 2.5cqw;
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.3cqw;
+  }
+  h2 em { font-style: normal; color: var(--accent); }
+  .lede {
+    font-size: 1.12cqw;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 62cqw;
+    margin-bottom: 1.6cqw;
+  }
+  .slide > .lede:last-of-type { margin-bottom: 0; }
+  p { font-size: 1.02cqw; line-height: 1.6; color: var(--ink-2); }
+  strong { color: var(--ink); font-weight: 600; }
+  .hl { color: var(--accent); font-weight: 600; }
+
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .cols { display: grid; gap: 1.6cqw; flex: 1; min-height: 0; }
+  .c2 { grid-template-columns: 1fr 1fr; }
+  .c2w { grid-template-columns: 1.35fr 1fr; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* ---------- Kartu ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1.3cqw 1.4cqw;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .card.rail { border-left: 2px solid var(--accent); }
+  .card .kv {
+    font-family: var(--mono);
+    font-size: 0.78cqw;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 0.4cqw;
+  }
+  .card h3 {
+    font-family: var(--display);
+    font-size: 1.35cqw;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.35cqw;
+  }
+  .card p { font-size: 0.94cqw; line-height: 1.55; }
+
+  /* ---------- Stat ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1cqw; }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--line);
+    border-radius: 3px;
+    padding: 1.1cqw 1.2cqw;
+  }
+  .stat.key { border-top-color: var(--accent); }
+  .stat .k {
+    font-family: var(--mono);
+    font-size: 0.72cqw;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .stat .v {
+    font-family: var(--display);
+    font-size: 3cqw;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    margin: 0.15cqw 0;
+  }
+  .stat.key .v { color: var(--accent); }
+  .stat .v small { font-size: 1.1cqw; color: var(--ink-2); font-weight: 400; }
+  .stat .n { font-size: 0.82cqw; color: var(--mute); line-height: 1.45; }
+
+  /* ---------- Tabel ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 0.92cqw; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.7cqw;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+    text-align: left;
+    padding: 0.55cqw 0.7cqw;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.52cqw 0.7cqw;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    vertical-align: top;
+    line-height: 1.45;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.name { color: var(--ink); font-weight: 600; }
+  tr.pick td { background: rgba(242, 102, 44, 0.09); }
+  tr.pick td.name { color: var(--accent); }
+  .tag-ok, .tag-no, .tag-mid {
+    font-family: var(--mono);
+    font-size: 0.72cqw;
+    padding: 0.1cqw 0.4cqw;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .tag-ok  { background: rgba(25,158,112,0.16);  color: #4fd3a0; }
+  .tag-mid { background: rgba(201,133,0,0.16);   color: #e0ac4a; }
+  .tag-no  { background: rgba(224,82,82,0.14);   color: #ef8b8b; }
+
+  /* ---------- Grafik ---------- */
+  .chart { width: 100%; flex: 1; min-height: 0; }
+  .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .ct {
+    font-family: var(--display);
+    font-size: 1.1cqw;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.15cqw;
+  }
+  .cs { font-size: 0.82cqw; color: var(--mute); margin-bottom: 0.8cqw; line-height: 1.4; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.9cqw; margin-top: 0.6cqw; }
+  .legend span {
+    display: flex; align-items: center; gap: 0.35cqw;
+    font-size: 0.8cqw; color: var(--ink-2);
+    font-family: var(--mono);
+  }
+  .legend i { width: 0.7cqw; height: 0.7cqw; border-radius: 2px; display: block; }
+  .axis-l { font-family: var(--mono); font-size: 0.68cqw; fill: var(--mute); }
+  .val-l  { font-family: var(--mono); font-size: 0.72cqw; fill: var(--ink); font-weight: 600; }
+  .cat-l  { font-size: 0.78cqw; fill: var(--ink-2); }
+  .grid-l { stroke: var(--line); stroke-width: 1; }
+
+  /* animasi grafik */
+  .bar-g rect { transform-origin: left center; }
+  .slide.live .bar-g rect { animation: growX 0.75s cubic-bezier(0.22,1,0.36,1) forwards; transform: scaleX(0); }
+  @keyframes growX { to { transform: scaleX(1); } }
+  .slide.live .bar-v rect { animation: growY 0.75s cubic-bezier(0.22,1,0.36,1) forwards; transform: scaleY(0); transform-origin: bottom; }
+  @keyframes growY { to { transform: scaleY(1); } }
+  .slide.live .line-p { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: draw 1.5s ease forwards 0.25s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.live .bar-g rect, .slide.live .bar-v rect { animation: none; transform: none; }
+    .slide.live .line-p { animation: none; stroke-dashoffset: 0; }
+  }
+
+  /* ---------- Daftar langkah ---------- */
+  ol.flow { display: flex; gap: 0.8cqw; counter-reset: f; }
+  ol.flow li {
+    counter-increment: f;
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
+    border-radius: 3px;
+    padding: 1cqw;
+    list-style: none;
+  }
+  ol.flow li::before {
+    content: counter(f, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.75cqw;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.35cqw;
+  }
+  ol.flow b { font-family: var(--display); font-size: 1.1cqw; display: block; margin-bottom: 0.25cqw; }
+  ol.flow p { font-size: 0.82cqw; }
+
+  ul.bul { display: flex; flex-direction: column; gap: 0.55cqw; }
+  ul.bul li {
+    list-style: none;
+    font-size: 0.96cqw;
+    line-height: 1.5;
+    color: var(--ink-2);
+    padding-left: 1.1cqw;
+    position: relative;
+  }
+  ul.bul li::before {
+    content: "";
+    position: absolute; left: 0; top: 0.6cqw;
+    width: 0.4cqw; height: 0.4cqw;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  .quote {
+    border-left: 2px solid var(--accent);
+    padding: 0.5cqw 0 0.5cqw 1.1cqw;
+    font-size: 1.05cqw;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+
+  /* ---------- Chrome deck ---------- */
+  .foot {
+    position: absolute;
+    left: 5cqw; right: 5cqw; bottom: 1.5cqw;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono);
+    font-size: 0.72cqw;
+    color: var(--mute);
+    letter-spacing: 0.06em;
+  }
+  #bar {
+    position: absolute; left: 0; bottom: 0; height: 2px;
+    background: var(--accent);
+    width: 0;
+    transition: width 0.45s cubic-bezier(0.22,1,0.36,1);
+    z-index: 5;
+  }
+  #ctrl {
+    position: fixed; right: 14px; bottom: 12px;
+    display: flex; gap: 6px; z-index: 20;
+    opacity: 0.25; transition: opacity 0.2s;
+  }
+  #ctrl:hover { opacity: 1; }
+  #ctrl button {
+    font-family: var(--mono); font-size: 11px;
+    background: var(--panel); color: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 2px;
+    padding: 5px 9px; cursor: pointer;
+  }
+  #ctrl button:hover { color: var(--ink); border-color: var(--mute); }
+  #ctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Catatan pembicara */
+  #notes {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    max-height: 42vh; overflow-y: auto;
+    background: #090C0F;
+    border-top: 2px solid var(--accent);
+    padding: 18px 26px 22px;
+    z-index: 30;
+    transform: translateY(101%);
+    transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+  }
+  #notes.open { transform: none; }
+  #notes .nh {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }
+  #notes .nb { font-size: 14.5px; line-height: 1.7; color: #B8C2CC; max-width: 105ch; }
+  #notes .nb strong { color: #fff; }
+  #notes .nb p + p { margin-top: 9px; }
+
+  #hint {
+    position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 11px; color: var(--mute);
+    z-index: 20; transition: opacity 0.5s;
+  }
+
+  /* Slide judul */
+  .title-slide { justify-content: center; }
+  .title-slide h1 { font-size: 5.6cqw; max-width: 70cqw; }
+  .title-slide .sub {
+    font-size: 1.25cqw; color: var(--ink-2); margin-top: 1.1cqw; max-width: 55cqw; line-height: 1.55;
+  }
+  .title-meta {
+    margin-top: 2.4cqw; display: flex; gap: 2.4cqw;
+    font-family: var(--mono); font-size: 0.85cqw; color: var(--mute);
+  }
+  .title-meta b { display: block; color: var(--ink); font-weight: 600; margin-top: 0.2cqw; }
+
+  .frame-3d {
+    flex: 1; border: 1px solid var(--line); border-radius: 3px;
+    overflow: hidden; background: var(--panel); min-height: 0;
+  }
+  .frame-3d iframe { width: 100%; height: 100%; border: 0; display: block; }
+</style>
+</head>
+<body>
+<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:99999;background-repeat:repeat;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27250%27%3E%3Ctext%20x%3D%2714%27%20y%3D%27135%27%20transform%3D%27rotate%28-24%20200%20125%29%27%20fill%3D%27white%27%20fill-opacity%3D%270.055%27%20font-family%3D%27monospace%27%20font-size%3D%2715%27%20font-weight%3D%27bold%27%3ECONFIDENTIAL%20%20-%20%20%28c%29%20HERU%20TRIYADI%202026%3C/text%3E%3C/svg%3E');"></div>
+
+
+<div id="deck">
+  <div id="bar"></div>
+
+  <!-- ============ 1. JUDUL ============ -->
+  <section class="slide" data-notes="Pembuka. Sampaikan tujuan pertemuan dalam satu kalimat: kita TIDAK sedang meminta persetujuan untuk membeli, kita sedang menguji apakah rancangan ini masuk akal sebelum uang keluar. Sebutkan bahwa seluruh angka dalam deck ini adalah estimasi yang belum diverifikasi ke marketplace — undang peserta untuk mengoreksi. Tekankan tiga keputusan yang ingin diambil hari ini: (1) analog atau digital, (2) tingkat anggaran, (3) timeline. Deck ini punya dua paruh: teknis dulu, lalu bisnis.">
+    <div class="title-slide" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+      <div class="eyebrow" data-r style="--i:0">Diskusi Pengembangan · Juli 2026</div>
+      <h1 data-r style="--i:1">Membangun Drone FPV Modern <em style="color:var(--accent);font-style:normal">dari Nol</em></h1>
+      <p class="sub" data-r style="--i:2">Rancangan quadcopter freestyle 5 inci — dari pemilihan komponen dan arsitektur firmware, sampai anggaran, timeline, dan peta teknologi drone 2026.</p>
+      <div class="title-meta" data-r style="--i:3">
+        <div>Rancangan<b>True-X 220 mm · 6S</b></div>
+        <div>Status<b>Desain — belum dibangun</b></div>
+        <div>Anggaran usulan<b>Rp 12,3 juta</b></div>
+        <div>Durasi<b>±25 menit + diskusi</b></div>
+      </div>
+    </div>
+    <div class="foot"><span>Rancangan Desain 3D Drone Lengkap</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 2. AGENDA ============ -->
+  <section class="slide" data-notes="Jelaskan alur. Paruh pertama menjawab 'apakah rancangannya benar secara teknis'. Paruh kedua menjawab 'apakah rancangannya masuk akal secara biaya dan waktu'. Minta peserta menahan pertanyaan biaya sampai bagian 4 agar diskusi teknis tidak terpotong. Beri tahu bahwa ada tiga keputusan yang harus keluar dari rapat ini, dan slide terakhir akan mengulanginya.">
+    <div class="eyebrow" data-r style="--i:0">Alur Diskusi</div>
+    <h2 data-r style="--i:1">Empat bagian, dua pertanyaan besar</h2>
+    <p class="lede" data-r style="--i:2">Paruh pertama menguji apakah rancangan ini <strong>benar secara teknis</strong>. Paruh kedua menguji apakah ia <strong>masuk akal secara biaya dan waktu</strong>.</p>
+    <div class="body">
+      <div class="cols c4">
+        <div class="card rail" data-r style="--i:3">
+          <div class="kv">Bagian 1 · 5 menit</div>
+          <h3>Peta Industri 2026</h3>
+          <p>Kelas-kelas drone, pergeseran analog ke digital, ekosistem yang sudah jadi standar, dan aturan yang berlaku di Indonesia.</p>
+        </div>
+        <div class="card rail" data-r style="--i:4">
+          <div class="kv">Bagian 2 · 8 menit</div>
+          <h3>Rancangan Kami</h3>
+          <p>Konsep, model 3D, komponen terpilih, distribusi bobot dan biaya, serta perhitungan yang menentukan drone ini terbang atau tidak.</p>
+        </div>
+        <div class="card rail" data-r style="--i:5">
+          <div class="kv">Bagian 3 · 7 menit</div>
+          <h3>Sistem &amp; Firmware</h3>
+          <p>Arsitektur tiga jalur, loop kendali 8 kHz, PID, filter, mixer, dan lapisan keselamatan yang menjaga manusia.</p>
+        </div>
+        <div class="card rail" data-r style="--i:6">
+          <div class="kv">Bagian 4 · 8 menit</div>
+          <h3>Anggaran &amp; Roadmap</h3>
+          <p>Tiga tingkat anggaran, timeline delapan minggu, risiko dan mitigasinya, lalu tiga keputusan yang diminta hari ini.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Agenda</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 3. RINGKASAN EKSEKUTIF ============ -->
+  <section class="slide" data-notes="Ini slide yang harus diingat orang kalau mereka lupa semua slide lain. Empat angka: rasio dorong-ke-bobot 7:1 (drone bisa mengangkat tujuh kali beratnya sendiri — ini yang membuat freestyle mungkin), massa 685 gram, biaya drone 5,3 juta, dan total dengan perlengkapan 12,3 juta. Poin penting yang sering mengagetkan: perlengkapan (radio, goggles, charger, alat) lebih mahal dari drone-nya sendiri — tapi itu biaya sekali seumur hidup, dipakai untuk drone kedua dan seterusnya. Kalau ada yang bertanya kenapa 6S bukan 4S: pada daya sama, 6S menarik arus dua pertiga, sehingga kabel lebih tipis, ESC lebih adem, dan throttle lebih responsif.">
+    <div class="eyebrow" data-r style="--i:0">Ringkasan Eksekutif</div>
+    <h2 data-r style="--i:1">Empat angka yang merangkum seluruh rancangan</h2>
+    <p class="lede" data-r style="--i:2">Sebuah quadcopter 5 inci bertenaga 6S, dirancang untuk freestyle: cukup lincah untuk manuver akrobatik, cukup sederhana untuk dirakit sebagai proyek pertama.</p>
+    <div class="body">
+      <div class="stats" data-r style="--i:3">
+        <div class="stat key">
+          <div class="k">Thrust-to-weight</div>
+          <div class="v">7,0<small> : 1</small></div>
+          <div class="n">Drone sanggup mengangkat 7× bobotnya sendiri. Di bawah 3:1, ia tidak akan bisa pulih dari dive.</div>
+        </div>
+        <div class="stat">
+          <div class="k">Massa terbang</div>
+          <div class="v">685<small> g</small></div>
+          <div class="n">Sweet spot kelas 5" ada di 650–750 g. Lebih berat = malas berputar.</div>
+        </div>
+        <div class="stat">
+          <div class="k">Biaya drone</div>
+          <div class="v">5,3<small> jt</small></div>
+          <div class="n">Komponen yang menempel di drone. Estimasi pasar, belum diverifikasi.</div>
+        </div>
+        <div class="stat">
+          <div class="k">Total dengan perlengkapan</div>
+          <div class="v">12,3<small> jt</small></div>
+          <div class="n">Termasuk radio, goggles, charger, alat solder — dipakai seumur hidup di hobi ini.</div>
+        </div>
+      </div>
+      <div class="cols c3" style="margin-top:1.4cqw">
+        <div class="card" data-r style="--i:4">
+          <div class="kv">Kenapa 6S, bukan 4S</div>
+          <p>Daya = Volt × Ampere. Pada daya yang sama, sistem 6S hanya menarik <strong>dua pertiga arus</strong> dari 4S — kabel lebih tipis, ESC lebih adem, sag voltase lebih kecil, throttle terasa lebih tajam. Konsekuensinya motor harus ber-KV rendah.</p>
+        </div>
+        <div class="card" data-r style="--i:5">
+          <div class="kv">Kenapa 5 inci</div>
+          <p>Kelas paling matang: komponen melimpah, harga wajar, dan komunitasnya terbesar sehingga masalah apa pun sudah pernah dipecahkan orang lain. Kelas 3" terlalu sempit, 7" terlalu berat untuk belajar.</p>
+        </div>
+        <div class="card" data-r style="--i:6">
+          <div class="kv">Kenapa dirakit sendiri</div>
+          <p>Drone jadi (RTF) memang lebih cepat terbang, tapi saat rusak kita tidak tahu apa-apa. Merakit sendiri berarti setiap sambungan, setiap parameter, dan setiap kegagalan bisa kita perbaiki tanpa bergantung pada siapa pun.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Ringkasan</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 4. PETA KELAS DRONE ============ -->
+  <section class="slide" data-notes="Tujuan slide: menempatkan pilihan kita di dalam peta, supaya orang paham kita tidak memilih sembarangan. Tekankan bahwa kelas ditentukan oleh diameter propeller, dan itu menentukan semua hal lain: bobot, durasi, harga, dan tingkat kesulitan. Kelas 5 inci dipilih karena berada di titik temu: komponen paling melimpah, harga paling wajar, komunitas paling besar. Kalau ada yang mengusulkan langsung ke 7 inci untuk long-range, jawabannya: bisa, tapi belajar terbang dengan drone berat dan mahal adalah cara termahal untuk gagal. Cinelifter dan kargo disebut hanya untuk konteks — arah itu ada di roadmap v3.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 1 · Peta Industri</div>
+    <h2 data-r style="--i:1">Di mana rancangan ini berdiri</h2>
+    <p class="lede" data-r style="--i:2">Kelas drone ditentukan oleh <strong>diameter propeller</strong> — dan itu menentukan segalanya: bobot, durasi terbang, harga, dan tingkat kesulitan menerbangkannya.</p>
+    <div class="body">
+      <div data-r style="--i:3">
+        <table>
+          <thead>
+            <tr>
+              <th>Kelas</th>
+              <th class="n">Prop</th>
+              <th class="n">AUW</th>
+              <th class="n">Durasi</th>
+              <th class="n">Biaya</th>
+              <th>Peruntukan</th>
+              <th>Kesulitan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="name">Tinywhoop</td>
+              <td class="n">1–2"</td><td class="n">30–60 g</td><td class="n">3–4 mnt</td><td class="n">±1,5 jt</td>
+              <td>Latihan dalam ruangan, aman di dekat orang</td>
+              <td><span class="tag-ok">Pemula</span></td>
+            </tr>
+            <tr>
+              <td class="name">Micro / Toothpick</td>
+              <td class="n">2,5–3"</td><td class="n">80–150 g</td><td class="n">4–5 mnt</td><td class="n">±2,5 jt</td>
+              <td>Taman kecil, celah sempit, di bawah 250 g</td>
+              <td><span class="tag-ok">Pemula</span></td>
+            </tr>
+            <tr class="pick">
+              <td class="name">Freestyle 5" — pilihan kami</td>
+              <td class="n">5"</td><td class="n">650–750 g</td><td class="n">4–6 mnt</td><td class="n">±5,3 jt</td>
+              <td>Akrobatik, dive, komponen paling melimpah</td>
+              <td><span class="tag-mid">Menengah</span></td>
+            </tr>
+            <tr>
+              <td class="name">Long-range 7"</td>
+              <td class="n">7"</td><td class="n">900–1200 g</td><td class="n">15–25 mnt</td><td class="n">±8 jt</td>
+              <td>Jelajah jauh, pemandangan, butuh GPS</td>
+              <td><span class="tag-mid">Menengah</span></td>
+            </tr>
+            <tr>
+              <td class="name">Cinelifter</td>
+              <td class="n">8–10"</td><td class="n">2–4 kg</td><td class="n">8–12 mnt</td><td class="n">±20 jt+</td>
+              <td>Angkut kamera sinema, produksi film</td>
+              <td><span class="tag-no">Mahir</span></td>
+            </tr>
+            <tr>
+              <td class="name">Kargo / Survei</td>
+              <td class="n">10–15"</td><td class="n">5–25 kg</td><td class="n">20–40 mnt</td><td class="n">±50 jt+</td>
+              <td>Pertanian, logistik, pemetaan — butuh izin</td>
+              <td><span class="tag-no">Profesional</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="quote" data-r style="--i:4" style="margin-top:1.2cqw">Kelas 5 inci bukan pilihan yang paling keren, tapi ia paling <span class="hl">bisa dipelajari</span>: komponen mudah dicari, harga wajar, dan setiap masalah yang akan kita temui sudah pernah dipecahkan orang lain.</div>
+    </div>
+    <div class="foot"><span>Peta kelas drone</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 5. ANALOG vs DIGITAL (grafik) ============ -->
+  <section class="slide" data-notes="Ini keputusan teknologi terpenting dalam deck, dan slide ini akan memicu debat paling panjang — biarkan. Dua grafik terpisah, BUKAN satu grafik dua sumbu, karena latensi dan harga adalah besaran yang berbeda dan menggabungkannya akan menipu mata. Baca grafik kiri: analog menang telak di latensi (20 ms). Sistem digital modern sudah turun ke 20-30 ms, jadi selisihnya kini tipis — inilah perubahan besar dua tahun terakhir. Grafik kanan: harga digital masih 3-5 kali lipat. Argumen kami: untuk build PERTAMA, crash adalah keniscayaan, dan menghancurkan kamera 3 juta jauh lebih menyakitkan daripada kamera 350 ribu. Analog dulu, digital di v2. Tapi ini poin yang paling ingin kami dengar bantahannya.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 1 · Tren Teknologi</div>
+    <h2 data-r style="--i:1">Pergeseran besar: <em>analog → digital HD</em></h2>
+    <p class="lede" data-r style="--i:2">Dua tahun terakhir mengubah perhitungan. Sistem digital dulu terlalu lambat untuk balapan; sekarang latensinya nyaris menyamai analog. Yang belum berubah: <strong>harganya</strong>.</p>
+    <div class="body">
+      <div class="cols c2">
+        <div class="card" data-r style="--i:3">
+          <div class="ct">Latensi ujung-ke-ujung</div>
+          <div class="cs">Jeda antara gerakan nyata dan gambar di mata pilot. Di atas 40 ms, otak mulai terasa "tertinggal" saat terbang cepat.</div>
+          <div class="chart" id="ch-latensi"></div>
+        </div>
+        <div class="card" data-r style="--i:4">
+          <div class="ct">Biaya sistem video</div>
+          <div class="cs">Kamera + pemancar di drone, ditambah goggles. Angka goggles dihitung sebagai investasi sekali.</div>
+          <div class="chart" id="ch-hargavid"></div>
+        </div>
+      </div>
+      <div class="cols c3" style="margin-top:1.2cqw">
+        <div class="card rail" data-r style="--i:5">
+          <div class="kv">Rekomendasi kami</div>
+          <p><strong>Analog untuk v1.</strong> Crash adalah keniscayaan saat belajar. Menghancurkan kamera Rp 350 rb terasa berbeda dengan menghancurkan unit digital Rp 3 juta.</p>
+        </div>
+        <div class="card" data-r style="--i:6">
+          <div class="kv">Yang berubah</div>
+          <p>DJI O4 dan Walksnail kini di bawah 30 ms — cukup untuk freestyle. Analog tidak lagi menang mutlak, hanya menang di <strong>harga dan ketahanan</strong>.</p>
+        </div>
+        <div class="card" data-r style="--i:7">
+          <div class="kv">Ini poin diskusi</div>
+          <p>Jika tim menilai kualitas rekaman lebih penting daripada risiko biaya crash, keputusan ini pantas dibalik. Kami ingin mendengar bantahannya.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Analog vs digital</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 6. EKOSISTEM 2026 ============ -->
+  <section class="slide" data-notes="Slide ini menjelaskan kenapa membangun drone hari ini jauh lebih mudah dibanding lima tahun lalu. Empat hal sudah menjadi standar de-facto, dan semuanya menurunkan risiko proyek kita. ExpressLRS: dulu setiap merek radio punya protokol sendiri yang mahal dan tertutup; sekarang satu standar terbuka mengalahkan semuanya dalam latensi DAN harga. AM32: firmware ESC open-source menggantikan BLHeli_32 yang berhenti dikembangkan — artinya ESC yang kita beli hari ini tidak akan jadi barang mati. RPM filter: ESC melaporkan kecepatan putar tiap motor kembali ke flight controller, sehingga filter bisa membidik frekuensi getaran dengan presisi. Ini yang membuat drone modern terasa jauh lebih 'terkunci' di udara dibanding drone 2019. Baterai 6S: menjadi standar kelas 5 inci menggantikan 4S.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 1 · Ekosistem</div>
+    <h2 data-r style="--i:1">Empat hal yang sudah jadi standar</h2>
+    <p class="lede" data-r style="--i:2">Membangun drone hari ini jauh lebih mudah daripada lima tahun lalu — bukan karena komponennya lebih murah, tapi karena <strong>ekosistemnya sudah menyatu</strong>. Semua ini menurunkan risiko proyek kita.</p>
+    <div class="body">
+      <div class="cols c4">
+        <div class="card" data-r style="--i:3">
+          <div class="kv">Kendali</div>
+          <h3>ExpressLRS</h3>
+          <p>Standar terbuka yang mengalahkan protokol berbayar dalam <strong>latensi sekaligus harga</strong>. Penerima Rp 160 ribu dengan jangkauan kilometeran. Dulu ini barang jutaan.</p>
+          <p style="margin-top:0.5cqw"><span class="tag-ok">Risiko rendah</span></p>
+        </div>
+        <div class="card" data-r style="--i:4">
+          <div class="kv">Motor</div>
+          <h3>AM32 open-source</h3>
+          <p>Firmware ESC terbuka yang menggantikan BLHeli_32 (berhenti dikembangkan). Artinya ESC yang kita beli hari ini <strong>tidak akan jadi barang mati</strong>.</p>
+          <p style="margin-top:0.5cqw"><span class="tag-ok">Risiko rendah</span></p>
+        </div>
+        <div class="card" data-r style="--i:5">
+          <div class="kv">Stabilitas</div>
+          <h3>RPM filter</h3>
+          <p>ESC melaporkan RPM tiap motor kembali ke flight controller, sehingga filter bisa <strong>membidik frekuensi getaran secara presisi</strong>. Ini alasan drone 2026 terasa jauh lebih "terkunci" di udara.</p>
+          <p style="margin-top:0.5cqw"><span class="tag-ok">Matang</span></p>
+        </div>
+        <div class="card" data-r style="--i:6">
+          <div class="kv">Daya</div>
+          <h3>6S sebagai standar</h3>
+          <p>Kelas 5 inci sudah pindah dari 4S ke 6S. Efeknya: arus lebih kecil, komponen lebih adem, dan pilihan motor/baterai kini <strong>paling banyak di 6S</strong>.</p>
+          <p style="margin-top:0.5cqw"><span class="tag-ok">Matang</span></p>
+        </div>
+      </div>
+      <div class="quote" data-r style="--i:7" style="margin-top:1.3cqw">Konsekuensi praktisnya: hampir semua masalah yang akan kita temui <span class="hl">sudah pernah dipecahkan dan didokumentasikan orang lain</span>. Ini menurunkan risiko proyek secara drastis.</div>
+    </div>
+    <div class="foot"><span>Ekosistem 2026</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 7. REGULASI ============ -->
+  <section class="slide" data-notes="Bagian ini penting untuk manajemen risiko, dan harus disampaikan dengan jujur: saya TIDAK memverifikasi aturan terbaru saat menyusun deck ini, jadi angka dan pasal di sini harus dicek ulang ke sumber resmi DJPU/Kemenhub sebelum dijadikan dasar keputusan. Prinsip yang berlaku umum: ada batas ketinggian, ada kawasan larangan di sekitar bandara (KKOP), dan drone di atas bobot tertentu perlu registrasi. Untuk drone kita (685 g), asumsikan kita berada di kategori yang butuh kehati-hatian. Rekomendasi operasional yang tidak bergantung pada detail aturan: terbang di lapangan terbuka jauh dari orang, jangan di atas kerumunan, jangan dekat bandara, dan selalu ada satu orang pengamat (spotter) selain pilot.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 1 · Kepatuhan</div>
+    <h2 data-r style="--i:1">Aturan terbang di Indonesia</h2>
+    <p class="lede" data-r style="--i:2">Bagian yang paling sering diabaikan penggemar, dan paling mahal akibatnya bila salah. <strong>Angka-angka di slide ini harus diverifikasi ulang</strong> ke sumber resmi sebelum jadi dasar keputusan.</p>
+    <div class="body">
+      <div class="cols c2w">
+        <div class="card" data-r style="--i:3">
+          <div class="kv">Prinsip yang perlu dipatuhi</div>
+          <ul class="bul" style="margin-top:0.6cqw">
+            <li>Ada <strong>batas ketinggian</strong> operasi (umumnya dirujuk sekitar 150 m di atas permukaan tanah untuk penerbangan rekreasi).</li>
+            <li>Ada <strong>kawasan terlarang</strong> di sekitar bandara — dikenal sebagai KKOP. Ini bukan wilayah abu-abu; melanggarnya berkonsekuensi pidana.</li>
+            <li>Drone di atas bobot tertentu memerlukan <strong>registrasi</strong> pada sistem resmi Kementerian Perhubungan.</li>
+            <li>Dilarang terbang <strong>di atas kerumunan orang</strong> atau di atas properti tanpa izin.</li>
+          </ul>
+        </div>
+        <div class="card rail" data-r style="--i:4">
+          <div class="kv">Kebijakan operasional kami</div>
+          <p style="margin-bottom:0.6cqw">Aturan ini berlaku terlepas dari detail regulasi, dan kami usulkan diadopsi sebagai <strong>syarat wajib setiap sesi terbang</strong>:</p>
+          <ul class="bul">
+            <li>Lapangan terbuka, radius aman minimal 50 m dari orang lain</li>
+            <li>Selalu ada <strong>spotter</strong> — satu orang mengawasi langit selagi pilot memakai goggles</li>
+            <li>Propeller dipasang <strong>terakhir</strong>, dilepas <strong>pertama</strong></li>
+            <li>Cek aturan terbaru di situs resmi DJPU sebelum lokasi baru</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" data-r style="--i:5" style="margin-top:1.2cqw;border-left:2px solid var(--warn)">
+        <p><strong>Catatan kejujuran:</strong> detail regulasi berubah dan deck ini disusun tanpa memverifikasi teks aturan terbaru. Perlakukan slide ini sebagai <strong>daftar hal yang harus dicek</strong>, bukan sebagai kutipan hukum. Satu orang perlu ditugaskan untuk memverifikasi ini sebelum penerbangan pertama.</p>
+      </div>
+    </div>
+    <div class="foot"><span>Regulasi</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 8. KONSEP RANCANGAN ============ -->
+  <section class="slide" data-notes="Masuk ke bagian 2. Jelaskan konfigurasi True-X: keempat motor berjarak sama dari pusat, membentuk X simetris. Kenapa penting: simetri berarti perilaku drone identik di keempat arah, sehingga tuning PID untuk roll juga berlaku untuk pitch. Konfigurasi lain (stretched-X, deadcat) mengorbankan simetri demi ruang kamera atau menghindari propeller masuk gambar. Untuk freestyle, simetri lebih berharga. Wheelbase 220 mm adalah jarak diagonal antar motor — ini yang mendefinisikan ukuran frame. Lengan karbon 5 mm: 4 mm terlalu rapuh saat crash, 6 mm menambah bobot tanpa manfaat berarti.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Rancangan Kami</div>
+    <h2 data-r style="--i:1">Konsep: True-X 220 mm</h2>
+    <p class="lede" data-r style="--i:2">Keempat motor berjarak sama dari titik pusat, membentuk X yang benar-benar simetris.</p>
+    <div class="body">
+      <div class="cols c3">
+        <div class="card" data-r style="--i:3">
+          <div class="kv">Kenapa simetris</div>
+          <h3>Perilaku identik di 4 arah</h3>
+          <p>Simetri berarti drone berperilaku sama saat berputar ke arah mana pun — sehingga tuning PID untuk sumbu roll otomatis berlaku untuk pitch. Konfigurasi lain (stretched-X, deadcat) mengorbankan simetri demi ruang kamera. Untuk freestyle, <strong>simetri lebih berharga</strong>.</p>
+        </div>
+        <div class="card" data-r style="--i:4">
+          <div class="kv">Kenapa lengan 5 mm</div>
+          <h3>Titik temu kekuatan &amp; bobot</h3>
+          <p>Lengan karbon 4 mm patah terlalu mudah saat crash — dan crash <em>pasti</em> terjadi. Lengan 6 mm menambah bobot tanpa manfaat berarti. Syarat mutlak: <strong>lengan harus bisa dibeli satuan</strong>, karena inilah bagian yang akan diganti berulang kali.</p>
+        </div>
+        <div class="card" data-r style="--i:5">
+          <div class="kv">Kenapa 220 mm</div>
+          <h3>Ruang untuk propeller 5"</h3>
+          <p>Wheelbase = jarak diagonal antar motor. Propeller 5 inci (127 mm) butuh 220 mm agar ujung bilahnya tidak saling menyentuh, dengan sisa ruang untuk toleransi saat frame melentur di manuver keras.</p>
+        </div>
+      </div>
+      <div class="stats" data-r style="--i:6" style="margin-top:1.3cqw;grid-template-columns:repeat(5,1fr)">
+        <div class="stat"><div class="k">Wheelbase</div><div class="v">220<small> mm</small></div></div>
+        <div class="stat"><div class="k">Motor</div><div class="v">2207<small> · 1900KV</small></div></div>
+        <div class="stat"><div class="k">Propeller</div><div class="v">5×4,3<small> ×3</small></div></div>
+        <div class="stat"><div class="k">Baterai</div><div class="v">6S<small> 1300mAh</small></div></div>
+        <div class="stat key"><div class="k">RPM puncak</div><div class="v">28k<small> berbeban</small></div></div>
+      </div>
+    </div>
+    <div class="foot"><span>Konsep rancangan</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 9. MODEL 3D ============ -->
+  <section class="slide" data-notes="Slide interaktif. Seret model untuk memutarnya 360 derajat, dan gunakan tombol 'Urai' untuk memisahkan komponennya. Ini cara tercepat menjelaskan tata letak: baterai di atas (mudah diganti, dan melindungi elektronik saat jatuh terbalik), stack elektronik di tengah (terlindung dari segala arah), kamera di depan dijepit dua pelat karbon (bagian paling rapuh, jadi harus terlindung), antena di belakang menjauh dari motor. Kalau presentasi offline dan model tidak muncul, buka langsung situsnya. Model ini digambar dengan canvas 2D murni tanpa library — sekitar 150 baris matematika.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Model 3D</div>
+    <h2 data-r style="--i:1">Tata letak — seret untuk memutar</h2>
+    <div class="body" style="margin-top:0.8cqw">
+      <div class="cols c2w" style="height:100%">
+        <div class="frame-3d" data-r style="--i:2">
+          <iframe data-src="index.html#model" title="Model 3D drone" loading="lazy"></iframe>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1cqw;min-height:0">
+          <div class="card" data-r style="--i:3">
+            <div class="kv">Prinsip tata letak</div>
+            <ul class="bul" style="margin-top:0.5cqw">
+              <li><strong>Baterai di atas</strong> — mudah diganti antar penerbangan, dan menjadi pelindung elektronik saat drone jatuh terbalik.</li>
+              <li><strong>Stack di tengah</strong> — flight controller dan ESC ditumpuk di titik paling terlindung dari segala arah benturan.</li>
+              <li><strong>Kamera dijepit dua pelat</strong> — ini bagian paling rapuh sekaligus paling depan saat menabrak.</li>
+              <li><strong>Antena di belakang</strong> — sejauh mungkin dari motor dan ESC yang menghasilkan gangguan listrik.</li>
+            </ul>
+          </div>
+          <div class="card rail" data-r style="--i:4">
+            <div class="kv">Catatan teknis</div>
+            <p>Model ini digambar dengan <strong>canvas 2D murni</strong> — tanpa Three.js, tanpa WebGL, sekitar 150 baris matematika: rotasi, proyeksi perspektif, painter's algorithm, dan pencahayaan Lambert. Semua dimensinya adalah <strong>ukuran asli dalam milimeter</strong>, jadi model ini sekaligus berfungsi sebagai gambar teknik.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Model 3D interaktif</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 10. KOMPONEN ============ -->
+  <section class="slide" data-notes="Bacakan hanya baris yang mengundang perdebatan, jangan seluruh tabel. Yang paling penting: stack (flight controller + ESC) dibeli sepaket, bukan satuan — lebih murah dan dijamin cocok kabel serta lubang bautnya. Motor 2207 artinya diameter stator 22 mm, tinggi 7 mm; stator lebih tinggi berarti torsi lebih besar, dan itu yang dibutuhkan untuk memutar propeller 5 inci. Baterai 100C artinya sanggup mengeluarkan 130 ampere — jauh di atas kebutuhan puncak kita 44 ampere, sehingga voltase tidak anjlok saat throttle disentak. Propeller dibeli 5 set sekaligus karena ini komponen yang paling sering hancur. Semua harga adalah estimasi — undang koreksi di sini.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Komponen</div>
+    <h2 data-r style="--i:1">Apa yang dibeli, dan kenapa</h2>
+    <p class="lede" data-r style="--i:2">Setiap baris berisi produk konkret. <strong>Semua harga adalah estimasi</strong> yang belum diverifikasi ke marketplace — di sinilah koreksi kalian paling berharga.</p>
+    <div class="body">
+      <div data-r style="--i:3">
+        <table>
+          <thead>
+            <tr><th>Komponen</th><th>Produk usulan</th><th>Alasan pemilihan</th><th class="n">Qty</th><th class="n">Rp</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="name">Frame</td><td>iFlight Nazgul5 V3 / TBS Source One V5</td>
+              <td>Lengan karbon 5 mm, bisa dibeli satuan saat patah</td><td class="n">1</td><td class="n">450 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Motor</td><td>Emax ECO II 2207 · 1900 KV</td>
+              <td>Stator 22×7 mm — torsi cukup untuk propeller 5" di 6S</td><td class="n">4</td><td class="n">1 280 rb</td>
+            </tr>
+            <tr class="pick">
+              <td class="name">Stack (FC + ESC)</td><td>SpeedyBee F405 V4 — FC dan ESC 55 A sepaket</td>
+              <td><strong>Beli sepaket:</strong> lebih murah, dijamin cocok kabel &amp; bautnya</td><td class="n">1</td><td class="n">1 250 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Kamera</td><td>Caddx Ratel 2 (analog 1200 TVL)</td>
+              <td>Performa low-light terbaik di kelasnya — tetap terlihat saat sore</td><td class="n">1</td><td class="n">350 rb</td>
+            </tr>
+            <tr>
+              <td class="name">VTX</td><td>Rush Tank Solo 800 mW</td>
+              <td>Heatsink besar — VTX murah sering mati sendiri karena panas</td><td class="n">1</td><td class="n">420 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Penerima</td><td>RadioMaster RP1 ExpressLRS</td>
+              <td>Jalur kontrol — kalau putus, drone jatuh. Jangan berhemat</td><td class="n">1</td><td class="n">160 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Propeller</td><td>HQProp 5.1×4.3×3 V1S</td>
+              <td>Beli 5 set: ini komponen yang paling sering hancur</td><td class="n">5 set</td><td class="n">175 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Baterai</td><td>CNHL Black Series 1300 mAh 6S 100C</td>
+              <td>Sanggup 130 A — jauh di atas kebutuhan puncak 44 A</td><td class="n">2</td><td class="n">960 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Antena &amp; barang kecil</td><td>Foxeer Lollipop 4 · XT60 · kapasitor 1000 µF</td>
+              <td>Kapasitor <strong>wajib</strong> — menyerap lonjakan voltase dari ESC</td><td class="n">1 set</td><td class="n">450 rb</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot"><span>Bill of materials · total Rp 5,3 jt</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 11. DISTRIBUSI BOBOT ============ -->
+  <section class="slide" data-notes="Grafik ini menjelaskan kenapa setiap gram diperdebatkan. Baterai adalah satu komponen terberat — 260 gram dari total 685, hampir 40 persen. Ini keputusan desain paling berpengaruh: menaikkan kapasitas baterai menambah durasi terbang, tapi menambah bobot, yang menurunkan rasio dorong-ke-bobot, yang membuat drone terasa malas. Slide berikutnya menunjukkan trade-off itu secara kuantitatif. Poin kedua: motor dan frame nyaris seimbang, dan elektronik (stack, kamera, VTX, penerima) hanya sekitar 13 persen — jadi berhemat di elektronik tidak akan banyak mengubah bobot; berhematlah di baterai dan frame.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Analisis</div>
+    <h2 data-r style="--i:1">Ke mana 685 gram itu pergi</h2>
+    <p class="lede" data-r style="--i:2">Grafik ini menjelaskan kenapa penggemar drone memperdebatkan <strong>setiap gram</strong>.</p>
+    <div class="body">
+      <div class="cols c2w">
+        <div class="card" data-r style="--i:3">
+          <div class="ct">Distribusi massa per komponen</div>
+          <div class="cs">Total massa terbang (AUW) 685 gram, dengan baterai terpasang.</div>
+          <div class="chart" id="ch-bobot"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1cqw">
+          <div class="card rail" data-r style="--i:4">
+            <div class="kv">Temuan utama</div>
+            <h3>Baterai = 38% bobot</h3>
+            <p>Satu komponen menyumbang hampir empat puluh persen massa. Inilah keputusan desain paling berpengaruh dalam seluruh rancangan — dan satu-satunya yang bisa diubah <strong>setelah</strong> drone selesai dibangun.</p>
+          </div>
+          <div class="card" data-r style="--i:5">
+            <div class="kv">Implikasi praktis</div>
+            <p>Elektronik (stack, kamera, VTX, penerima) hanya <strong>13% bobot</strong>. Artinya berhemat di elektronik nyaris tidak mengubah performa terbang — tapi mengorbankan kualitas gambar dan keandalan. <strong>Berhematlah di tempat lain.</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Distribusi bobot</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 12. TRADE-OFF BATERAI ============ -->
+  <section class="slide" data-notes="Slide paling penting secara analitis. Dua grafik terpisah karena satuannya berbeda — menit dan rasio — dan menggabungkan keduanya di satu grafik dua sumbu akan menipu mata. Baca kiri ke kanan: menaikkan kapasitas baterai dari 1300 ke 1800 mAh menambah durasi sekitar satu setengah menit, tapi menurunkan rasio dorong-ke-bobot dari 7,0 ke 6,1. Di 2200 mAh, durasi naik lagi tapi TWR jatuh ke 5,4 dan drone mulai terasa berat saat flip. Kesimpulan: 1300 mAh adalah titik optimal untuk freestyle. Kalau nanti kita ingin long-range, jawabannya bukan baterai lebih besar di frame yang sama — jawabannya adalah frame 7 inci. Ini penting: orang sering mencoba 'memaksa' drone freestyle jadi long-range dan berakhir dengan drone yang buruk di keduanya.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Trade-off</div>
+    <h2 data-r style="--i:1">Baterai lebih besar = <em>terbang lebih lama, tapi lebih malas</em></h2>
+    <p class="lede" data-r style="--i:2">Setiap tambahan kapasitas membeli waktu terbang dengan harga berupa kelincahan. Dua grafik, dua satuan — sengaja tidak digabung agar tidak menipu mata.</p>
+    <div class="body">
+      <div class="cols c2">
+        <div class="card" data-r style="--i:3">
+          <div class="ct">Durasi terbang</div>
+          <div class="cs">Gaya freestyle (throttle agresif). Naik, tapi tidak sebanding — bobot ekstra ikut memakan energi.</div>
+          <div class="chart" id="ch-durasi"></div>
+        </div>
+        <div class="card" data-r style="--i:4">
+          <div class="ct">Rasio dorong-ke-bobot</div>
+          <div class="cs">Turun terus. Di bawah 5:1, drone mulai terasa berat dan lambat merespons perintah flip.</div>
+          <div class="chart" id="ch-twr"></div>
+        </div>
+      </div>
+      <div class="card rail" data-r style="--i:5" style="margin-top:1.2cqw">
+        <p><strong>Kesimpulan: 1300 mAh adalah titik optimal untuk freestyle.</strong> Dan bila nanti kita menginginkan penerbangan jarak jauh, jawabannya <em>bukan</em> memasang baterai raksasa di frame yang sama — itu menghasilkan drone yang buruk di kedua peran. Jawabannya adalah frame 7 inci, dan itu ada di roadmap v3.</p>
+      </div>
+    </div>
+    <div class="foot"><span>Trade-off kapasitas baterai</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 13. PERHITUNGAN ============ -->
+  <section class="slide" data-notes="Tabel ini adalah pembuktian bahwa rancangan ini bukan tebakan. Angka yang harus ditekankan: thrust-to-weight 7:1 — minimum 4:1 untuk bisa freestyle, dan di bawah 3:1 drone tidak akan bisa pulih dari dive. Throttle melayang 30 persen artinya drone hanya butuh sepertiga tenaga untuk diam di udara, menyisakan dua pertiga untuk manuver. Kalau hover butuh 50 persen, drone kelebihan berat. Arus puncak 44 ampere melawan ESC 55 ampere memberi headroom 25 persen — ini margin keamanan, bukan pemborosan; ESC yang bekerja di 100 persen kapasitasnya akan mati muda. Beban baterai hanya 34C dari rating 100C, artinya baterai bekerja santai dan akan awet.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 2 · Perhitungan</div>
+    <h2 data-r style="--i:1">Angka yang menentukan drone ini terbang atau tidak</h2>
+    <p class="lede" data-r style="--i:2">Rancangan ini bukan tebakan. Setiap komponen dipilih agar tujuh angka berikut jatuh di rentang yang benar.</p>
+    <div class="body">
+      <div data-r style="--i:3">
+        <table>
+          <thead>
+            <tr><th>Besaran</th><th>Cara hitung</th><th class="n">Hasil</th><th class="n">Target sehat</th><th>Artinya</th></tr>
+          </thead>
+          <tbody>
+            <tr class="pick">
+              <td class="name">Thrust-to-weight</td><td>4 × 1200 g ÷ 685 g</td><td class="n">7,0 : 1</td><td class="n">6–9 : 1</td>
+              <td><strong>Angka terpenting.</strong> Minimum 4:1 untuk freestyle; di bawah 3:1 tidak bisa pulih dari dive</td>
+            </tr>
+            <tr>
+              <td class="name">Massa terbang</td><td>frame + elektronik + baterai</td><td class="n">685 g</td><td class="n">650–750 g</td>
+              <td>Di atas 800 g drone terasa malas dan enggan berputar cepat</td>
+            </tr>
+            <tr>
+              <td class="name">Throttle melayang</td><td>turunan dari TWR</td><td class="n">~30 %</td><td class="n">25–35 %</td>
+              <td>Hanya sepertiga tenaga untuk diam di udara — sisanya untuk manuver</td>
+            </tr>
+            <tr>
+              <td class="name">Arus puncak</td><td>4 × ~11 A</td><td class="n">44 A</td><td class="n">&lt; 55 A</td>
+              <td>ESC 55 A memberi headroom 25%. ESC yang bekerja di 100% akan mati muda</td>
+            </tr>
+            <tr>
+              <td class="name">Beban baterai</td><td>44 A ÷ 1,3 Ah</td><td class="n">34 C</td><td class="n">&lt; 60 C</td>
+              <td>Rating baterai 100C — ia bekerja santai, sehingga awet dan tidak menggembung</td>
+            </tr>
+            <tr>
+              <td class="name">Daya puncak</td><td>44 A × 24,0 V</td><td class="n">1 060 W</td><td class="n">—</td>
+              <td>Setara satu setrika listrik, dari benda seberat tiga apel</td>
+            </tr>
+            <tr>
+              <td class="name">RPM maksimum</td><td>1900 KV × 25,2 V, berbeban</td><td class="n">~28 000</td><td class="n">—</td>
+              <td>Alasan propeller wajib seimbang — getaran di RPM segini merusak gyro</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot"><span>Perhitungan teknis</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 14. ARSITEKTUR ============ -->
+  <section class="slide" data-notes="Masuk bagian 3. Konsep kunci: ada tiga jalur yang berjalan paralel dan sebagian besar saling independen. Jalur daya: baterai ke ESC ke motor. Jalur kontrol: radio ke penerima ke flight controller ke ESC. Jalur video: kamera ke flight controller (untuk ditimpa OSD) lalu ke pemancar. Yang penting dipahami manajemen risiko: jalur video TERPISAH dari jalur kontrol. Kalau video mati di tengah terbang, drone masih sepenuhnya bisa dikendalikan — walau butuh nyali karena pilot terbang buta. Sebaliknya, kalau jalur kontrol putus, tidak ada gunanya video masih hidup. Itu sebabnya kita tidak berhemat di penerima radio.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 3 · Sistem</div>
+    <h2 data-r style="--i:1">Tiga jalur yang berjalan paralel</h2>
+    <p class="lede" data-r style="--i:2">Memahami pemisahan ini adalah kunci manajemen risiko: <strong>video dan kontrol tidak saling bergantung.</strong></p>
+    <div class="body">
+      <div class="cols c3">
+        <div class="card" data-r style="--i:3" style="border-left:2px solid var(--s4)">
+          <div class="kv" style="color:var(--s4)">Jalur 1 · Daya</div>
+          <h3>Baterai → ESC → Motor</h3>
+          <p style="margin-bottom:0.5cqw">ESC memotong arus searah 22 volt menjadi tiga fasa bergantian, menciptakan medan magnet berputar yang menyeret rotor motor.</p>
+          <p><strong>Titik gagal:</strong> solder yang buruk di jalur ini menghasilkan panas, lalu api. Inilah kenapa smoke stopper wajib saat penyalaan pertama.</p>
+        </div>
+        <div class="card" data-r style="--i:4" style="border-left:2px solid var(--accent)">
+          <div class="kv" style="color:var(--accent)">Jalur 2 · Kontrol</div>
+          <h3>Stik → FC → PID → ESC</h3>
+          <p style="margin-bottom:0.5cqw">Stik meminta <em>kecepatan berputar</em>, bukan sudut. Flight controller membandingkan permintaan itu dengan bacaan gyro dan mengoreksinya <strong>8 000 kali per detik</strong>.</p>
+          <p><strong>Titik gagal:</strong> kalau jalur ini putus, drone jatuh. Tidak ada kompromi di sini.</p>
+        </div>
+        <div class="card" data-r style="--i:5" style="border-left:2px solid var(--s2)">
+          <div class="kv" style="color:var(--s2)">Jalur 3 · Video</div>
+          <h3>Kamera → OSD → VTX</h3>
+          <p style="margin-bottom:0.5cqw">Video menembus flight controller supaya chip OSD bisa menimpakan data (voltase, timer) ke gambar sebelum dipancarkan.</p>
+          <p><strong>Titik gagal:</strong> video mati ≠ drone jatuh. Pilot masih bisa mengendalikan — walau terbang buta.</p>
+        </div>
+      </div>
+      <div class="quote" data-r style="--i:6" style="margin-top:1.3cqw">Pemisahan ini disengaja. Sistem yang paling kritis (kontrol) adalah yang <span class="hl">paling sederhana dan paling murah</span> — dan itu bukan kebetulan, melainkan prinsip rekayasa keselamatan.</div>
+    </div>
+    <div class="foot"><span>Arsitektur sistem</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 15. LOOP 8 kHz ============ -->
+  <section class="slide" data-notes="Kalimat pembuka yang efektif: drone ini TIDAK stabil secara alami. Tanpa komputer yang mengoreksi, ia akan terguling dalam waktu di bawah satu detik — persis seperti sapu yang ditegakkan di telapak tangan. Yang membuatnya tampak menempel di udara adalah enam langkah ini, diulang delapan ribu kali per detik. Tekankan bahwa seluruh siklus selesai di bawah 300 mikrodetik — manusia berkedip seribu kali lebih lambat. Kecepatan inilah, bukan sensor mahal atau algoritma pintar, yang membuat benda tak stabil ini terbang. Kalau ada yang bertanya kenapa harus secepat itu: karena semakin cepat koreksi diberikan, semakin kecil koreksinya perlu — dan koreksi kecil berarti terbang halus.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 3 · Firmware</div>
+    <h2 data-r style="--i:1">Enam langkah, <em>8 000 kali per detik</em></h2>
+    <p class="lede" data-r style="--i:2">Drone ini <strong>tidak stabil secara alami</strong>. Tanpa komputer yang mengoreksi, ia terguling dalam waktu di bawah satu detik — seperti sapu yang ditegakkan di telapak tangan. Enam langkah inilah yang menjaganya tegak.</p>
+    <div class="body">
+      <ol class="flow" data-r style="--i:3">
+        <li><b>Baca gyro</b><p>Sensor melaporkan kecepatan putar drone di tiga sumbu, 8 000 kali per detik.</p></li>
+        <li><b>Saring getaran</b><p>Filter memisahkan rotasi asli (0–50 Hz) dari getaran propeller (200–800 Hz).</p></li>
+        <li><b>Baca stik</b><p>Perintah pilot diterjemahkan lewat kurva rates menjadi target derajat per detik.</p></li>
+        <li><b>Hitung PID</b><p>Selisih antara yang diminta dan yang terjadi diubah jadi perintah koreksi.</p></li>
+        <li><b>Campur ke 4 motor</b><p>Tiga sumbu koreksi diterjemahkan menjadi empat nilai throttle motor.</p></li>
+        <li><b>Kirim DShot</b><p>Paket digital ber-checksum dikirim ke ESC. Lalu ulangi dari awal.</p></li>
+      </ol>
+      <div class="cols c2" style="margin-top:1.3cqw">
+        <div class="card rail" data-r style="--i:4">
+          <div class="kv">Yang membuatnya bekerja</div>
+          <p>Seluruh siklus selesai <strong>di bawah 300 mikrodetik</strong>. Manusia berkedip seribu kali lebih lambat. Kecepatan inilah — bukan sensor mahal atau algoritma pintar — yang membuat benda tak stabil ini terasa menempel di udara.</p>
+        </div>
+        <div class="card" data-r style="--i:5">
+          <div class="kv">Prinsipnya</div>
+          <p>Semakin cepat koreksi diberikan, semakin <strong>kecil</strong> koreksi yang dibutuhkan. Dan koreksi kecil yang terus-menerus terasa halus, sementara koreksi besar yang terlambat terasa seperti tersentak.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Loop kendali 8 kHz</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 16. PID ============ -->
+  <section class="slide" data-notes="Grafik ini adalah inti dari seluruh tuning drone. Garis putus-putus adalah yang diminta pilot: berputar 300 derajat per detik. Tiga kurva menunjukkan apa yang terjadi dengan gain berbeda. P terlalu rendah (biru): drone lembek, lambat mencapai target, terasa 'berenang' di udara. Tersetel (oranye): naik cepat, sedikit overshoot, langsung mantap. P terlalu tinggi (ungu): drone berosilasi — di dunia nyata inilah suara mendengung dan motor yang panas. Peran masing-masing: P adalah otot yang mendorong (bereaksi pada error sekarang), I adalah ingatan yang melawan bias permanen seperti baterai berat sebelah (mengakumulasi error masa lalu), D adalah rem yang meredam osilasi (memprediksi ke mana drone akan pergi). Ada simulator interaktif di situs — bisa didemokan langsung kalau ada yang penasaran.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 3 · PID</div>
+    <h2 data-r style="--i:1">Tiga angka yang menentukan rasa terbang</h2>
+    <p class="lede" data-r style="--i:2">Pilot meminta "berputar 300°/detik". Grafik ini menunjukkan apa yang benar-benar dilakukan drone — dan bagaimana tiga angka mengubah segalanya.</p>
+    <div class="body">
+      <div class="cols c2w">
+        <div class="card" data-r style="--i:3">
+          <div class="ct">Respons terhadap perintah mendadak</div>
+          <div class="cs">Garis putus-putus = yang diminta stik. Tiga kurva = hasil dengan setelan gain berbeda.</div>
+          <div class="chart" id="ch-pid"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.9cqw">
+          <div class="card" data-r style="--i:4" style="border-left:2px solid var(--accent)">
+            <div class="kv" style="color:var(--accent)">P — otot</div>
+            <p>Bereaksi pada error <strong>sekarang</strong>. Terlalu rendah: drone lembek dan "berenang". Terlalu tinggi: berosilasi, mendengung, motor panas. P melakukan 90% pekerjaan.</p>
+          </div>
+          <div class="card" data-r style="--i:5" style="border-left:2px solid var(--s2)">
+            <div class="kv" style="color:var(--s2)">I — ingatan</div>
+            <p>Mengakumulasi error <strong>masa lalu</strong>. Ini yang melawan bias permanen: baterai berat sebelah, angin konstan, satu motor lebih lemah. Tanpa I, drone selalu melayang miring.</p>
+          </div>
+          <div class="card" data-r style="--i:6" style="border-left:2px solid var(--s5)">
+            <div class="kv" style="color:var(--s5)">D — rem</div>
+            <p>Memprediksi <strong>masa depan</strong> dengan membaca laju perubahan. D meredam osilasi yang ditimbulkan P — tapi ia juga memperkuat noise, dan itulah penyebab nomor satu motor panas.</p>
+          </div>
+        </div>
+      </div>
+      <p data-r style="--i:7" style="margin-top:0.9cqw;font-size:0.9cqw"><strong>Demo langsung:</strong> ada simulator PID interaktif di situs — geser slider dan lihat drone berosilasi secara real-time.</p>
+    </div>
+    <div class="foot"><span>Kontroler PID</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 17. MIXER ============ -->
+  <section class="slide" data-notes="Tabel ini adalah seluruh pengetahuan drone tentang bentuk fisiknya sendiri. Cara membacanya: per kolom, bukan per baris. Kolom roll: motor kanan dapat minus, kiri dapat plus — perintah roll ke kanan memperlambat motor kanan, drone miring ke kanan. Kolom pitch: motor belakang dapat plus, jadi hidung terangkat. Kolom yaw yang paling menarik: polanya diagonal, dan diagonal itu persis pasangan motor yang berputar searah. Yaw TIDAK bekerja dengan mendorong udara ke samping — ia bekerja dengan mempercepat dua motor yang berputar searah, sehingga torsi reaksinya memuntir badan drone ke arah sebaliknya. Prinsip yang sama dengan pergelangan tangan yang menahan bor listrik. Airmode: kalau throttle nol dan pilot memerintahkan flip, motor 'seharusnya' berputar negatif — mustahil. Airmode menaikkan keempat motor bersamaan sampai koreksi muat. Tanpa itu, drone kehilangan kendali total saat throttle nol — persis saat dive.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 3 · Mixer</div>
+    <h2 data-r style="--i:1">Mengubah 3 sumbu menjadi 4 motor</h2>
+    <p class="lede" data-r style="--i:2">Tabel ini adalah <strong>seluruh pengetahuan drone tentang bentuk fisiknya sendiri</strong>. Bacalah per kolom, bukan per baris.</p>
+    <div class="body">
+      <div class="cols c2">
+        <div data-r style="--i:3">
+          <table>
+            <thead>
+              <tr><th>Motor</th><th class="n">Throttle</th><th class="n">Roll</th><th class="n">Pitch</th><th class="n">Yaw</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="name">M1 · belakang-kanan</td><td class="n">+1</td><td class="n">−1</td><td class="n">+1</td><td class="n">−1</td></tr>
+              <tr><td class="name">M2 · depan-kanan</td><td class="n">+1</td><td class="n">−1</td><td class="n">−1</td><td class="n">+1</td></tr>
+              <tr><td class="name">M3 · belakang-kiri</td><td class="n">+1</td><td class="n">+1</td><td class="n">+1</td><td class="n">+1</td></tr>
+              <tr><td class="name">M4 · depan-kiri</td><td class="n">+1</td><td class="n">+1</td><td class="n">−1</td><td class="n">−1</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:0.9cqw;font-size:0.88cqw"><strong>Kolom Roll:</strong> motor kanan −1, kiri +1 → perintah roll kanan memperlambat motor kanan, drone miring ke kanan.<br>
+          <strong>Kolom Yaw:</strong> polanya <em>diagonal</em> — dan diagonal itu persis pasangan motor yang berputar searah.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.9cqw">
+          <div class="card rail" data-r style="--i:4">
+            <div class="kv">Yang paling sering disalahpahami</div>
+            <h3>Yaw bukan dorongan samping</h3>
+            <p>Yaw bekerja lewat <strong>torsi reaksi</strong>: mempercepat dua motor yang berputar searah membuat badan drone terpuntir ke arah <em>sebaliknya</em>. Prinsip yang sama dengan pergelangan tangan yang menahan bor listrik saat mata bor menggigit.</p>
+          </div>
+          <div class="card" data-r style="--i:5" style="border-left:2px solid var(--s3)">
+            <div class="kv" style="color:var(--s3)">Airmode — fitur penyelamat</div>
+            <p>Kalau throttle nol dan pilot memerintahkan flip, motor "seharusnya" berputar negatif — mustahil. Airmode <strong>menaikkan keempat motor bersamaan</strong> sampai koreksi muat. Tanpa itu, drone kehilangan kendali total saat throttle nol — persis saat dive. Ini yang membedakan drone freestyle dari drone mainan.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Mixer Quad-X</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 18. KESELAMATAN ============ -->
+  <section class="slide" data-notes="Slide yang paling jarang dibahas orang, dan paling sering menentukan apakah seseorang pulang dengan sepuluh jari utuh. Setiap syarat arming di sini lahir dari kecelakaan nyata seseorang. Kenapa failsafe harus DROP dan bukan pulang otomatis: untuk quad 5 inci tanpa GPS, drone tanpa kendali yang motornya masih menyala adalah gergaji terbang 700 gram yang melesat ke arah yang tidak bisa diprediksi. Menjatuhkannya di tempat jauh lebih aman — dan drone-nya biasanya masih bisa diperbaiki. Runaway takeoff prevention: kalau motor menyala tapi gyro melaporkan gerakan yang tidak masuk akal (misalnya arah motor terbalik), flight controller otomatis mematikan motor dalam ratusan milidetik. Aturan mati yang harus disepakati tim: propeller dipasang terakhir, dilepas pertama. Semua pengujian di meja dilakukan tanpa propeller.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 3 · Keselamatan</div>
+    <h2 data-r style="--i:1">Sistem yang menjaga manusia</h2>
+    <p class="lede" data-r style="--i:2">Bilah 5 inci pada 25 000 RPM bisa membuka jari sampai tulang. <strong>Setiap syarat di slide ini lahir dari kecelakaan nyata seseorang.</strong></p>
+    <div class="body">
+      <div class="cols c2">
+        <div class="card" data-r style="--i:3">
+          <div class="kv">Syarat arming — semua harus terpenuhi</div>
+          <table style="margin-top:0.5cqw">
+            <tbody>
+              <tr><td class="name">Throttle nol</td><td>Kalau tidak, drone melompat dari tanah begitu di-arm</td></tr>
+              <tr><td class="name">Kemiringan &lt; 25°</td><td>Drone yang mendarat terbalik tidak bisa di-arm tak sengaja</td></tr>
+              <tr><td class="name">Gyro selesai kalibrasi</td><td>Gyro yang belum siap memberi bacaan sampah ke PID</td></tr>
+              <tr><td class="name">Link radio hidup</td><td>Jangan pernah menyalakan motor tanpa kendali</td></tr>
+              <tr><td class="name">Baterai layak</td><td>Voltase rendah = motor tak sanggup mengoreksi</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.9cqw">
+          <div class="card" data-r style="--i:4" style="border-left:2px solid var(--crit)">
+            <div class="kv" style="color:#ef8b8b">Failsafe = DROP, bukan pulang</div>
+            <p>Untuk quad 5" tanpa GPS, satu-satunya perilaku aman saat link putus adalah <strong>mematikan motor</strong>. Drone tanpa kendali yang masih menyala adalah gergaji terbang 700 gram yang melesat ke arah tak terduga. Jatuh di tempat jauh lebih aman — dan drone biasanya masih bisa diperbaiki.</p>
+          </div>
+          <div class="card" data-r style="--i:5" style="border-left:2px solid var(--crit)">
+            <div class="kv" style="color:#ef8b8b">Aturan mati untuk tim</div>
+            <p>Propeller adalah hal <strong>terakhir</strong> yang dipasang dan <strong>pertama</strong> yang dilepas. Semua pengujian di meja — motor test, konfigurasi, cek arah putaran — dilakukan <strong>tanpa propeller</strong>. Tidak ada pengecualian, tidak ada "cuma sebentar".</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Keselamatan &amp; failsafe</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 19. ANGGARAN TIER ============ -->
+  <section class="slide" data-notes="Masuk bagian 4 — bisnis. Grafik bertumpuk menunjukkan komposisi tiap tier: bagian bawah adalah drone, bagian atas adalah perlengkapan. Yang harus disadari: perlengkapan lebih mahal dari drone di semua tier. Tapi perlengkapan adalah biaya SEKALI SEUMUR HIDUP — radio, goggles, charger, dan alat solder akan dipakai untuk drone kedua, ketiga, dan seterusnya. Drone kedua nanti hanya butuh 5,3 juta. Rekomendasi kami tier Standar: titik temu terbaik antara harga dan rasa, dan tidak ada yang perlu di-upgrade dalam satu sampai dua tahun. Tier Hemat memang bisa terbang, tapi goggles murahnya akan membuat orang ingin upgrade dalam hitungan bulan — dan akhirnya membayar dua kali.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 4 · Anggaran</div>
+    <h2 data-r style="--i:1">Tiga tingkat, satu rekomendasi</h2>
+    <p class="lede" data-r style="--i:2">Ketiganya menghasilkan drone yang <em>terbang</em>. Yang membedakan adalah keawetan, kualitas gambar, dan seberapa cepat kita merasa perlu upgrade.</p>
+    <div class="body">
+      <div class="cols c2w">
+        <div class="card" data-r style="--i:3">
+          <div class="ct">Komposisi biaya per tingkat</div>
+          <div class="cs">Bagian bawah = drone. Bagian atas = perlengkapan (radio, goggles, charger, alat).</div>
+          <div class="chart" id="ch-anggaran"></div>
+          <div class="legend">
+            <span><i style="background:var(--s1)"></i> Drone</span>
+            <span><i style="background:var(--s4)"></i> Perlengkapan</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.9cqw">
+          <div class="card rail" data-r style="--i:4">
+            <div class="kv">Rekomendasi</div>
+            <h3>Tier Standar — Rp 12,3 jt</h3>
+            <p>Titik temu terbaik antara harga dan rasa. <strong>Tidak ada yang perlu di-upgrade dalam 1–2 tahun.</strong></p>
+          </div>
+          <div class="card" data-r style="--i:5">
+            <div class="kv">Peringatan soal tier Hemat</div>
+            <p>Tier Hemat memang bisa terbang. Tapi goggles murahnya akan membuat orang ingin upgrade dalam hitungan bulan — dan akhirnya <strong>membayar dua kali</strong>. Hemat di depan, mahal di belakang.</p>
+          </div>
+          <div class="card" data-r style="--i:6">
+            <div class="kv">Fakta yang mengagetkan</div>
+            <p>Perlengkapan <strong>lebih mahal daripada drone</strong> di semua tier. Tapi itu biaya sekali seumur hidup — drone kedua nanti hanya butuh Rp 5,3 juta.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Anggaran</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 20. BIAYA JANGKA PANJANG ============ -->
+  <section class="slide" data-notes="Slide untuk menjawab pertanyaan 'berapa biaya sesungguhnya kalau proyek ini berlanjut'. Poin utama: biaya awal 12,3 juta, tapi biaya marginal drone berikutnya hanya 5,3 juta, dan biaya rutin sekitar 200 ribu per bulan untuk propeller patah dan sesekali lengan frame. Kalau ada yang menanyakan ROI atau nilai: kerangkakan sebagai investasi kapabilitas, bukan barang. Yang kita beli sebenarnya adalah kemampuan tim untuk merancang, merakit, dan menerbangkan sistem udara tanpa awak — dan itu kapabilitas yang bisa dikembangkan ke arah survei, inspeksi, atau dokumentasi. Sebutkan bahwa ini juga bahan diskusi, bukan klaim.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 4 · Biaya Jangka Panjang</div>
+    <h2 data-r style="--i:1">Berapa biayanya bila proyek ini berlanjut</h2>
+    <div class="body">
+      <div class="stats" data-r style="--i:2" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat key">
+          <div class="k">Investasi awal</div>
+          <div class="v">12,3<small> jt</small></div>
+          <div class="n">Drone pertama + seluruh perlengkapan</div>
+        </div>
+        <div class="stat">
+          <div class="k">Biaya drone kedua</div>
+          <div class="v">5,3<small> jt</small></div>
+          <div class="n">Perlengkapan sudah dimiliki — tinggal komponennya</div>
+        </div>
+        <div class="stat">
+          <div class="k">Biaya rutin</div>
+          <div class="v">200<small> rb/bln</small></div>
+          <div class="n">Propeller patah, sesekali lengan frame</div>
+        </div>
+        <div class="stat">
+          <div class="k">Aset yang bertahan</div>
+          <div class="v">7,0<small> jt</small></div>
+          <div class="n">Radio, goggles, charger, alat — lintas generasi drone</div>
+        </div>
+      </div>
+      <div class="cols c2" style="margin-top:1.4cqw">
+        <div class="card rail" data-r style="--i:3">
+          <div class="kv">Cara membingkai nilainya</div>
+          <h3>Kita membeli kapabilitas, bukan barang</h3>
+          <p>Yang benar-benar dibeli adalah <strong>kemampuan tim untuk merancang, merakit, dan menerbangkan sistem udara tanpa awak</strong> — beserta pemahaman atas setiap sambungan dan setiap parameter di dalamnya. Drone-nya sendiri adalah hasil sampingan.</p>
+        </div>
+        <div class="card" data-r style="--i:4">
+          <div class="kv">Ke mana kapabilitas ini bisa dibawa</div>
+          <ul class="bul" style="margin-top:0.5cqw">
+            <li>Survei &amp; pemetaan area (butuh naik ke kelas 7" + GPS)</li>
+            <li>Inspeksi struktur — atap, menara, panel surya</li>
+            <li>Dokumentasi &amp; videografi</li>
+            <li>Basis untuk eksperimen otonomi dan computer vision</li>
+          </ul>
+          <p style="margin-top:0.6cqw"><em>Ini bahan diskusi, bukan klaim — arah mana yang bernilai bagi kita?</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Biaya jangka panjang</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 21. TIMELINE ============ -->
+  <section class="slide" data-notes="Timeline delapan minggu, dan urutan ini tidak boleh ditukar. Minggu 1-2 riset dan pembelian — komponen dari luar negeri butuh waktu. Minggu 3 perakitan mekanik: frame kering dulu, pastikan semua baut sejajar. Minggu 4 penyolderan — ini minggu paling berisiko, dan smoke stopper dipakai di sini. Minggu 5 konfigurasi Betaflight, semuanya TANPA propeller. Minggu 6 hover test pertama, di lapangan terbuka, satu meter di atas tanah. Minggu 7-8 tuning PID dan filter — satu perubahan per penerbangan, dan selalu raba suhu motor setelah mendarat. Perhatikan bahwa terbang pertama baru terjadi di minggu 6: lima minggu persiapan untuk satu menit hover. Itu bukan pemborosan waktu, itu yang membedakan drone yang bertahan dari drone yang terbakar di penyalaan pertama.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 4 · Rencana</div>
+    <h2 data-r style="--i:1">Delapan minggu, urutan tidak boleh ditukar</h2>
+    <p class="lede" data-r style="--i:2">Perhatikan: <strong>terbang pertama baru di minggu 6.</strong> Lima minggu persiapan untuk satu menit hover — dan itu bukan pemborosan.</p>
+    <div class="body">
+      <div class="card" data-r style="--i:3" style="flex:1">
+        <div class="chart" id="ch-timeline"></div>
+      </div>
+      <div class="cols c3" style="margin-top:1.1cqw">
+        <div class="card" data-r style="--i:4" style="border-left:2px solid var(--warn)">
+          <div class="kv" style="color:var(--warn)">Minggu paling berisiko</div>
+          <p><strong>Minggu 4 — penyolderan.</strong> Satu sambungan yang korslet membakar ESC dan flight controller sekaligus. Smoke stopper dipakai di sini, tanpa pengecualian.</p>
+        </div>
+        <div class="card" data-r style="--i:5" style="border-left:2px solid var(--s3)">
+          <div class="kv" style="color:var(--s3)">Aturan minggu 5</div>
+          <p>Seluruh konfigurasi Betaflight — termasuk uji arah putaran motor — dilakukan <strong>tanpa propeller terpasang</strong>.</p>
+        </div>
+        <div class="card" data-r style="--i:6" style="border-left:2px solid var(--s2)">
+          <div class="kv" style="color:var(--s2)">Cara tuning yang benar</div>
+          <p>Satu perubahan per penerbangan. Selalu <strong>raba suhu motor</strong> setelah mendarat — kalau tidak nyaman disentuh, tuning-nya sudah kelewatan.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Timeline 8 minggu</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 22. RISIKO ============ -->
+  <section class="slide" data-notes="Tabel risiko dengan mitigasi konkret. Jangan hanya membacakan — tanyakan ke peserta risiko apa yang terlewat. Risiko tertinggi adalah korslet saat penyalaan pertama (dampak besar, dan cukup sering terjadi pada build pertama) — mitigasinya smoke stopper 150 ribu. Risiko kedua yang sering diremehkan: propeller yang berputar saat tangan masih dekat. Mitigasinya adalah prosedur, bukan alat: propeller dipasang terakhir. Risiko yang paling mungkin terjadi tapi dampaknya kecil: crash yang merusak lengan frame — mitigasinya beli frame yang lengannya bisa dibeli satuan, dan siapkan cadangan sejak awal. Risiko baterai terbakar: LiPo yang rusak karena crash bisa terbakar berjam-jam kemudian tanpa peringatan — mitigasinya tas tahan api dan karantina 30 menit setelah crash keras.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 4 · Risiko</div>
+    <h2 data-r style="--i:1">Apa yang bisa gagal, dan penangkalnya</h2>
+    <p class="lede" data-r style="--i:2">Daftar ini belum lengkap — <strong>apa yang terlewat menurut kalian?</strong></p>
+    <div class="body">
+      <div data-r style="--i:3">
+        <table>
+          <thead>
+            <tr><th>Risiko</th><th>Kemungkinan</th><th>Dampak</th><th>Mitigasi</th><th class="n">Biaya mitigasi</th></tr>
+          </thead>
+          <tbody>
+            <tr class="pick">
+              <td class="name">Korslet saat penyalaan pertama</td>
+              <td><span class="tag-mid">Sedang</span></td>
+              <td><span class="tag-no">ESC + FC hangus — Rp 1,25 jt</span></td>
+              <td><strong>Smoke stopper</strong> di penyalaan pertama + uji continuity dengan multimeter sebelum baterai masuk</td>
+              <td class="n">150 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Cedera propeller</td>
+              <td><span class="tag-ok">Rendah</span></td>
+              <td><span class="tag-no">Cedera serius pada manusia</span></td>
+              <td>Prosedur, bukan alat: propeller dipasang <strong>terakhir</strong>, semua uji meja tanpa propeller</td>
+              <td class="n">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="name">Crash merusak lengan frame</td>
+              <td><span class="tag-no">Tinggi — pasti terjadi</span></td>
+              <td><span class="tag-ok">Rendah — Rp 80 rb</span></td>
+              <td>Pilih frame yang lengannya dijual satuan; stok cadangan sejak awal</td>
+              <td class="n">160 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Baterai LiPo terbakar</td>
+              <td><span class="tag-ok">Rendah</span></td>
+              <td><span class="tag-no">Kebakaran</span></td>
+              <td>Tas tahan api, isi daya di lantai keramik, <strong>karantina 30 menit</strong> setelah crash keras</td>
+              <td class="n">100 rb</td>
+            </tr>
+            <tr>
+              <td class="name">Motor panas karena salah tuning</td>
+              <td><span class="tag-mid">Sedang</span></td>
+              <td><span class="tag-mid">Motor rusak — Rp 320 rb</span></td>
+              <td>Raba suhu motor setiap mendarat; turunkan gain D bila panas</td>
+              <td class="n">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="name">Estimasi harga meleset</td>
+              <td><span class="tag-no">Tinggi</span></td>
+              <td><span class="tag-mid">Anggaran bengkak 20–30%</span></td>
+              <td>Verifikasi harga ke marketplace <strong>sebelum</strong> anggaran disetujui — belum dilakukan</td>
+              <td class="n">Rp 0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot"><span>Risiko &amp; mitigasi</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 23. ROADMAP ============ -->
+  <section class="slide" data-notes="Roadmap tiga tahap. v1 adalah yang kita bahas hari ini: analog, freestyle, tujuannya BELAJAR — bukan menghasilkan karya. v2 setelah tim nyaman terbang: naik ke video digital, karena saat itu crash sudah jarang dan risiko biayanya turun drastis. v3 adalah percabangan: mau ke long-range 7 inci dengan GPS, atau ke arah otonomi dan computer vision dengan companion computer. Yang penting disampaikan: v1 sengaja dirancang agar TIDAK terbuang. Radio, goggles, charger, alat, dan yang terpenting — pengetahuan tim — semuanya terbawa ke v2 dan v3. Yang diganti hanya komponen drone-nya sendiri.">
+    <div class="eyebrow" data-r style="--i:0">Bagian 4 · Roadmap</div>
+    <h2 data-r style="--i:1">Tiga tahap — dan tidak ada yang terbuang</h2>
+    <div class="body">
+      <div class="cols c3">
+        <div class="card" data-r style="--i:2" style="border-top:2px solid var(--accent)">
+          <div class="kv" style="color:var(--accent)">v1 · Sekarang — 8 minggu</div>
+          <h3>Freestyle 5" Analog</h3>
+          <p style="margin-bottom:0.6cqw"><strong>Tujuan: belajar, bukan berkarya.</strong> Video analog, tanpa GPS. Crash adalah bagian dari kurikulum, dan analog membuat crash jadi murah.</p>
+          <ul class="bul">
+            <li>Rakit, solder, konfigurasi, tuning</li>
+            <li>Anggaran Rp 12,3 jt (termasuk perlengkapan)</li>
+            <li>Sukses = bisa hover stabil &amp; flip terkendali</li>
+          </ul>
+        </div>
+        <div class="card" data-r style="--i:3" style="border-top:2px solid var(--s2)">
+          <div class="kv" style="color:var(--s2)">v2 · Setelah nyaman terbang</div>
+          <h3>Upgrade ke Digital HD</h3>
+          <p style="margin-bottom:0.6cqw">Saat crash sudah jarang, risiko biaya digital turun drastis. Baru <em>di situ</em> upgrade masuk akal.</p>
+          <ul class="bul">
+            <li>DJI O4 / Walksnail air unit + goggles</li>
+            <li>Tambahan ± Rp 7 jt</li>
+            <li>Hasil: rekaman HD layak dipublikasikan</li>
+          </ul>
+        </div>
+        <div class="card" data-r style="--i:4" style="border-top:2px solid var(--s5)">
+          <div class="kv" style="color:var(--s5)">v3 · Percabangan</div>
+          <h3>Long-range atau Otonom</h3>
+          <p style="margin-bottom:0.6cqw">Dua arah, pilih sesuai kebutuhan yang muncul:</p>
+          <ul class="bul">
+            <li><strong>Long-range:</strong> frame 7", GPS, return-to-home — untuk survei &amp; jelajah</li>
+            <li><strong>Otonom:</strong> companion computer, computer vision — untuk riset &amp; inspeksi</li>
+          </ul>
+        </div>
+      </div>
+      <div class="quote" data-r style="--i:5" style="margin-top:1.3cqw">v1 sengaja dirancang agar <span class="hl">tidak ada yang terbuang</span>: radio, goggles, charger, alat, dan yang terpenting — pengetahuan tim — semuanya terbawa ke v2 dan v3. Yang diganti hanya komponen drone-nya.</div>
+    </div>
+    <div class="foot"><span>Roadmap</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 24. KEPUTUSAN ============ -->
+  <section class="slide" data-notes="Slide penutup yang paling penting. Jangan biarkan rapat bubar tanpa tiga jawaban ini. Keputusan 1: analog atau digital untuk v1 — rekomendasi kami analog, tapi ini yang paling ingin kami dengar bantahannya. Keputusan 2: tingkat anggaran — rekomendasi kami Standar 12,3 juta, karena Hemat berujung membayar dua kali. Keputusan 3: siapa yang mengerjakan apa, dan apakah timeline 8 minggu realistis dengan beban kerja tim saat ini. Selain itu, ada dua tugas yang harus diberi nama orang hari ini: verifikasi harga ke marketplace, dan verifikasi regulasi terbaru. Keduanya adalah lubang jujur dalam deck ini.">
+    <div class="eyebrow" data-r style="--i:0">Penutup</div>
+    <h2 data-r style="--i:1">Tiga keputusan yang diminta hari ini</h2>
+    <p class="lede" data-r style="--i:2">Rapat ini tidak boleh bubar tanpa tiga jawaban berikut.</p>
+    <div class="body">
+      <div class="cols c3">
+        <div class="card rail" data-r style="--i:3">
+          <div class="kv">Keputusan 1</div>
+          <h3>Analog atau digital untuk v1?</h3>
+          <p style="margin-bottom:0.6cqw"><strong>Rekomendasi: analog.</strong> Crash adalah keniscayaan saat belajar; kamera Rp 350 rb jauh lebih ringan hilangnya dibanding unit Rp 3 jt.</p>
+          <p><em>Ini poin yang paling ingin kami dengar bantahannya.</em></p>
+        </div>
+        <div class="card rail" data-r style="--i:4">
+          <div class="kv">Keputusan 2</div>
+          <h3>Tingkat anggaran?</h3>
+          <p style="margin-bottom:0.6cqw"><strong>Rekomendasi: Standar — Rp 12,3 jt.</strong> Tier Hemat berujung membayar dua kali saat goggles murahnya minta diganti dalam hitungan bulan.</p>
+          <p><em>Berapa plafon yang realistis?</em></p>
+        </div>
+        <div class="card rail" data-r style="--i:5">
+          <div class="kv">Keputusan 3</div>
+          <h3>Siapa mengerjakan apa?</h3>
+          <p style="margin-bottom:0.6cqw">Timeline 8 minggu mengasumsikan ada orang yang benar-benar punya waktu untuk menyolder dan menguji.</p>
+          <p><em>Realistis dengan beban kerja tim saat ini?</em></p>
+        </div>
+      </div>
+      <div class="card" data-r style="--i:6" style="margin-top:1.3cqw;border-left:2px solid var(--warn)">
+        <div class="kv" style="color:var(--warn)">Dua tugas yang harus diberi nama orang hari ini</div>
+        <p><strong>1. Verifikasi harga</strong> — seluruh angka rupiah dalam deck ini adalah estimasi yang belum dicek ke marketplace. Anggaran tidak boleh disetujui sebelum ini selesai. &nbsp;·&nbsp; <strong>2. Verifikasi regulasi</strong> — aturan penerbangan drone dirujuk secara umum, bukan dikutip dari teks resmi terbaru. Keduanya adalah lubang jujur dalam presentasi ini.</p>
+      </div>
+    </div>
+    <div class="foot"><span>Keputusan</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 25. PENUTUP ============ -->
+  <section class="slide" data-notes="Penutup. Buka diskusi. Pertanyaan pemantik kalau ruangan diam: (1) Apa yang paling meragukan dari rancangan ini? (2) Adakah komponen yang menurut kalian salah pilih? (3) Apakah ada yang punya pengalaman crash yang harus kami antisipasi? Ingatkan bahwa seluruh dokumen — model 3D, kode firmware, simulator PID, dan daftar belanja — tersedia di situs, dan bisa dibuka siapa saja kapan saja.">
+    <div class="title-slide" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+      <div class="eyebrow" data-r style="--i:0">Terima kasih</div>
+      <h1 data-r style="--i:1">Sekarang bagian kalian: <em style="color:var(--accent);font-style:normal">apa yang salah?</em></h1>
+      <p class="sub" data-r style="--i:2">Rancangan ini belum dibangun. Itu berarti setiap koreksi hari ini <strong style="color:var(--ink)">gratis</strong> — dan setiap koreksi setelah komponen dibeli, tidak.</p>
+      <div class="cols c3" data-r style="--i:3" style="margin-top:2.2cqw;max-width:66cqw">
+        <div class="card"><div class="kv">Pemantik 1</div><p>Apa yang paling meragukan dari rancangan ini?</p></div>
+        <div class="card"><div class="kv">Pemantik 2</div><p>Adakah komponen yang menurut kalian salah pilih?</p></div>
+        <div class="card"><div class="kv">Pemantik 3</div><p>Pengalaman crash apa yang harus kami antisipasi?</p></div>
+      </div>
+      <p data-r style="--i:4" style="margin-top:1.8cqw;font-family:var(--mono);font-size:0.85cqw;color:var(--mute)">Dokumen lengkap — model 3D, kode firmware, simulator PID, daftar belanja:<br><span style="color:var(--accent)">herutriyadih2-cloud.github.io/rancangan-drone-fpv</span></p>
+    </div>
+    <div class="foot"><span>Diskusi</span><span class="pg"></span></div>
+  </section>
+
+</div>
+
+<div id="ctrl">
+  <button id="bPrev" title="Slide sebelumnya (←)">←</button>
+  <button id="bNext" title="Slide berikutnya (→)">→</button>
+  <button id="bNotes" title="Catatan pembicara (N)">Catatan</button>
+  <button id="bFull" title="Layar penuh (F)">Layar penuh</button>
+</div>
+
+<div id="notes">
+  <div class="nh">Catatan pembicara · tekan N untuk menutup</div>
+  <div class="nb" id="notesBody"></div>
+</div>
+
+<div id="hint">← → berpindah slide · N catatan pembicara · F layar penuh</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  const bar = document.getElementById('bar');
+  const notes = document.getElementById('notes');
+  const notesBody = document.getElementById('notesBody');
+  const hint = document.getElementById('hint');
+  let cur = 0;
+  const drawn = new Set();
+
+  function render(i, dir) {
+    const prev = slides[cur];
+    cur = Math.max(0, Math.min(total - 1, i));
+    const next = slides[cur];
+
+    slides.forEach(function (s) { s.classList.remove('live', 'in', 'out'); });
+    next.classList.add('live', 'in');
+
+    // muat iframe 3D hanya saat slide-nya dibuka
+    const fr = next.querySelector('iframe[data-src]');
+    if (fr && !fr.src) fr.src = fr.getAttribute('data-src');
+
+    // gambar chart slide ini sekali saja
+    if (!drawn.has(cur)) { drawCharts(next); drawn.add(cur); }
+
+    bar.style.width = ((cur + 1) / total * 100) + '%';
+    next.querySelectorAll('.pg').forEach(function (p) {
+      p.textContent = String(cur + 1).padStart(2, '0') + ' / ' + total;
+    });
+    notesBody.innerHTML = (next.dataset.notes || 'Tidak ada catatan untuk slide ini.')
+      .split('\n').map(function (t) { return '<p>' + t + '</p>'; }).join('');
+    location.hash = 'slide-' + (cur + 1);
+  }
+
+  function go(d) { render(cur + d); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') render(0);
+    else if (e.key === 'End') render(total - 1);
+    else if (e.key === 'n' || e.key === 'N') notes.classList.toggle('open');
+    else if (e.key === 'f' || e.key === 'F') toggleFull();
+    else if (e.key === 'Escape') notes.classList.remove('open');
+  });
+
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(function () {});
+  }
+
+  document.getElementById('bPrev').addEventListener('click', function () { go(-1); });
+  document.getElementById('bNext').addEventListener('click', function () { go(1); });
+  document.getElementById('bNotes').addEventListener('click', function () { notes.classList.toggle('open'); });
+  document.getElementById('bFull').addEventListener('click', toggleFull);
+
+  setTimeout(function () { hint.style.opacity = '0'; }, 5000);
+
+  // ============================================================
+  // GRAFIK — SVG, tanpa library
+  // Palet kategorikal sudah divalidasi (lightness band, chroma
+  // floor, pemisahan buta warna, kontras terhadap latar gelap).
+  // ============================================================
+  const S1 = '#E05C22', S2 = '#3987e5', S3 = '#199e70', S4 = '#c98500', S5 = '#9085e9';
+  const INK = '#ECEFF2', MUTE = '#6F7C88', LINE = '#253039';
+
+  function el(tag, attrs, kids) {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    (kids || []).forEach(function (c) { n.appendChild(c); });
+    return n;
+  }
+  function txt(x, y, s, cls, anchor) {
+    const t = el('text', { x: x, y: y, class: cls || 'axis-l' });
+    if (anchor) t.setAttribute('text-anchor', anchor);
+    t.textContent = s;
+    return t;
+  }
+  function svg(host, w, h) {
+    host.innerHTML = '';
+    const s = el('svg', { viewBox: '0 0 ' + w + ' ' + h, preserveAspectRatio: 'xMidYMid meet' });
+    host.appendChild(s);
+    return s;
+  }
+
+  // --- Bar horizontal dengan label langsung di ujung ---
+  function barH(host, rows, opts) {
+    opts = opts || {};
+    const W = 420, H = rows.length * 30 + 16;
+    const s = svg(host, W, H);
+    const padL = opts.padL || 108, padR = 54;
+    const max = Math.max.apply(null, rows.map(function (r) { return r.v; }));
+    const g = el('g', { class: 'bar-g' });
+
+    rows.forEach(function (r, i) {
+      const y = 8 + i * 30;
+      const w = Math.max(2, (r.v / max) * (W - padL - padR));
+      g.appendChild(el('rect', {
+        x: padL, y: y, width: w, height: 16, rx: 3,
+        fill: r.c || S1,
+        style: 'animation-delay:' + (0.06 * i + 0.15) + 's'
+      }));
+      s.appendChild(txt(padL - 9, y + 12, r.k, 'cat-l', 'end'));
+      s.appendChild(txt(padL + w + 8, y + 12, r.l, 'val-l'));
+    });
+    s.appendChild(g);
+  }
+
+  // --- Bar bertumpuk vertikal ---
+  function barStack(host, cats, opts) {
+    const W = 420, H = 250;
+    const s = svg(host, W, H);
+    const padB = 46, padT = 26, padL = 8;
+    const max = Math.max.apply(null, cats.map(function (c) { return c.a + c.b; }));
+    const bw = 74, gap = (W - padL * 2 - bw * cats.length) / (cats.length - 1);
+    const g = el('g', { class: 'bar-v' });
+
+    cats.forEach(function (c, i) {
+      const x = padL + i * (bw + gap);
+      const hA = (c.a / max) * (H - padB - padT);
+      const hB = (c.b / max) * (H - padB - padT);
+      const yA = H - padB - hA;
+      const yB = yA - hB - 2;   // spacer 2px antar segmen
+
+      g.appendChild(el('rect', { x: x, y: yA, width: bw, height: hA, rx: 3, fill: S1,
+        style: 'animation-delay:' + (0.1 * i + 0.15) + 's' }));
+      g.appendChild(el('rect', { x: x, y: yB, width: bw, height: hB, rx: 3, fill: S4,
+        style: 'animation-delay:' + (0.1 * i + 0.25) + 's' }));
+
+      s.appendChild(txt(x + bw / 2, yB - 9, c.t, 'val-l', 'middle'));
+      s.appendChild(txt(x + bw / 2, H - padB + 20, c.k, 'cat-l', 'middle'));
+      if (c.note) s.appendChild(txt(x + bw / 2, H - padB + 34, c.note, 'axis-l', 'middle'));
+    });
+    s.appendChild(g);
+    s.appendChild(el('line', { x1: padL, y1: H - padB, x2: W - padL, y2: H - padB, class: 'grid-l' }));
+  }
+
+  // --- Garis (satu atau banyak seri) ---
+  function lineChart(host, series, opts) {
+    const W = 420, H = opts.h || 200;
+    const s = svg(host, W, H);
+    const padL = 44, padR = 16, padT = 18, padB = 34;
+    const xs = opts.x, ymin = opts.ymin, ymax = opts.ymax;
+    const X = function (i) { return padL + (i / (xs.length - 1)) * (W - padL - padR); };
+    const Y = function (v) { return H - padB - ((v - ymin) / (ymax - ymin)) * (H - padT - padB); };
+
+    (opts.ticks || []).forEach(function (t) {
+      s.appendChild(el('line', { x1: padL, y1: Y(t), x2: W - padR, y2: Y(t), class: 'grid-l', opacity: 0.55 }));
+      s.appendChild(txt(padL - 8, Y(t) + 4, t + (opts.unit || ''), 'axis-l', 'end'));
+    });
+    xs.forEach(function (x, i) { s.appendChild(txt(X(i), H - padB + 18, x, 'axis-l', 'middle')); });
+
+    series.forEach(function (se) {
+      const d = se.v.map(function (v, i) { return (i ? 'L' : 'M') + X(i) + ' ' + Y(v); }).join(' ');
+      s.appendChild(el('path', {
+        d: d, fill: 'none', stroke: se.c, 'stroke-width': 2,
+        'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+        class: 'line-p', 'stroke-dasharray': se.dash ? '5 4' : ''
+      }));
+      se.v.forEach(function (v, i) {
+        if (!se.dash) s.appendChild(el('circle', { cx: X(i), cy: Y(v), r: 4, fill: se.c, stroke: '#12171D', 'stroke-width': 2 }));
+      });
+      // label langsung di titik terakhir
+      if (se.label) {
+        const last = se.v.length - 1;
+        s.appendChild(txt(X(last) - 4, Y(se.v[last]) - 12, se.label, 'val-l', 'end'));
+      }
+    });
+  }
+
+  // --- Kurva PID (dihitung, bukan digambar tangan) ---
+  function pidCurve(kp, ki, kd, n) {
+    const DT = 0.002, TORQUE = 3000, DRAG = 0.8, TAU = 0.03, SET = 300;
+    let rate = 0, torque = 0, integ = 0, prev = 0, dF = 0;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const e = SET - rate;
+      integ = Math.max(-0.35, Math.min(0.35, integ + ki * e * DT));
+      const der = -(rate - prev) / DT; prev = rate;
+      dF += 0.22 * (der - dF);
+      let u = kp * e + integ + kd * dF;
+      u = Math.max(-1, Math.min(1, u));
+      torque += (u - torque) * (DT / TAU);
+      rate += (TORQUE * torque - DRAG * rate) * DT;
+      out.push(rate);
+    }
+    return out;
+  }
+
+  function pidChart(host) {
+    const W = 420, H = 250;
+    const s = svg(host, W, H);
+    const padL = 46, padR = 14, padT = 16, padB = 40;
+    const N = 130, SET = 300, YMAX = 480;
+    const X = function (i) { return padL + (i / (N - 1)) * (W - padL - padR); };
+    const Y = function (v) { return H - padB - (v / YMAX) * (H - padT - padB); };
+
+    [0, 150, 300, 450].forEach(function (t) {
+      s.appendChild(el('line', { x1: padL, y1: Y(t), x2: W - padR, y2: Y(t), class: 'grid-l', opacity: 0.5 }));
+      s.appendChild(txt(padL - 8, Y(t) + 4, t, 'axis-l', 'end'));
+    });
+    s.appendChild(txt(padL - 8, Y(450) - 12, '°/dtk', 'axis-l', 'end'));
+    s.appendChild(txt(W - padR, H - padB + 18, '→ 0,26 detik', 'axis-l', 'end'));
+
+    // target (putus-putus)
+    s.appendChild(el('path', {
+      d: 'M' + X(0) + ' ' + Y(SET) + ' L' + X(N - 1) + ' ' + Y(SET),
+      stroke: MUTE, 'stroke-width': 1.5, 'stroke-dasharray': '5 4', fill: 'none'
+    }));
+    s.appendChild(txt(X(N - 1), Y(SET) - 9, 'diminta stik', 'axis-l', 'end'));
+
+    const sets = [
+      { c: S2, kp: 0.0009, ki: 0.004, kd: 3e-6,  n: 'P rendah — lembek' },
+      { c: S5, kp: 0.0065, ki: 0.012, kd: 1e-6,  n: 'P tinggi — osilasi' },
+      { c: S1, kp: 0.0030, ki: 0.012, kd: 9.6e-6, n: 'tersetel' }
+    ];
+    sets.forEach(function (st, k) {
+      const v = pidCurve(st.kp, st.ki, st.kd, N);
+      const d = v.map(function (val, i) { return (i ? 'L' : 'M') + X(i) + ' ' + Y(Math.max(0, Math.min(YMAX, val))); }).join(' ');
+      s.appendChild(el('path', {
+        d: d, fill: 'none', stroke: st.c,
+        'stroke-width': k === 2 ? 2.6 : 2,
+        'stroke-linejoin': 'round', class: 'line-p',
+        style: 'animation-delay:' + (0.2 + k * 0.25) + 's'
+      }));
+    });
+
+    // legenda (identitas tidak pernah hanya lewat warna)
+    const lg = document.createElement('div');
+    lg.className = 'legend';
+    lg.innerHTML = sets.map(function (st) {
+      return '<span><i style="background:' + st.c + '"></i>' + st.n + '</span>';
+    }).join('');
+    host.appendChild(lg);
+  }
+
+  // --- Timeline (Gantt) ---
+  function gantt(host) {
+    const tasks = [
+      { k: 'Riset & pembelian', s: 0, d: 2, c: S2 },
+      { k: 'Rakit mekanik', s: 2, d: 1, c: S2 },
+      { k: 'Solder & kelistrikan', s: 3, d: 1, c: S4 },
+      { k: 'Konfigurasi Betaflight', s: 4, d: 1, c: S3 },
+      { k: 'Hover test pertama', s: 5, d: 1, c: S1 },
+      { k: 'Tuning PID & filter', s: 6, d: 2, c: S1 }
+    ];
+    const W = 900, H = tasks.length * 34 + 34;
+    const s = svg(host, W, H);
+    const padL = 190, padR = 20, weeks = 8;
+    const cw = (W - padL - padR) / weeks;
+
+    for (let w = 0; w <= weeks; w++) {
+      const x = padL + w * cw;
+      s.appendChild(el('line', { x1: x, y1: 22, x2: x, y2: H - 12, class: 'grid-l', opacity: 0.5 }));
+      if (w < weeks) s.appendChild(txt(x + cw / 2, 14, 'M' + (w + 1), 'axis-l', 'middle'));
+    }
+
+    const g = el('g', { class: 'bar-g' });
+    tasks.forEach(function (t, i) {
+      const y = 30 + i * 34;
+      g.appendChild(el('rect', {
+        x: padL + t.s * cw + 2, y: y, width: t.d * cw - 4, height: 20, rx: 3, fill: t.c,
+        style: 'animation-delay:' + (0.08 * i + 0.15) + 's'
+      }));
+      s.appendChild(txt(padL - 12, y + 15, t.k, 'cat-l', 'end'));
+      s.appendChild(txt(padL + t.s * cw + 10, y + 15, t.d === 1 ? '1 mgg' : t.d + ' mgg', 'val-l'));
+    });
+    s.appendChild(g);
+  }
+
+  // --- Router grafik per slide ---
+  function drawCharts(slide) {
+    const q = function (id) { return slide.querySelector('#' + id); };
+
+    if (q('ch-latensi')) {
+      barH(q('ch-latensi'), [
+        { k: 'Analog 5,8 GHz', v: 20, l: '20 ms', c: S1 },
+        { k: 'HDZero', v: 22, l: '22 ms', c: S2 },
+        { k: 'DJI O4', v: 25, l: '25 ms', c: S2 },
+        { k: 'Walksnail', v: 28, l: '28 ms', c: S2 },
+        { k: 'Ambang nyaman', v: 40, l: '40 ms', c: S4 }
+      ]);
+    }
+    if (q('ch-hargavid')) {
+      barH(q('ch-hargavid'), [
+        { k: 'Analog', v: 4.3, l: 'Rp 4,3 jt', c: S1 },
+        { k: 'HDZero', v: 8.5, l: 'Rp 8,5 jt', c: S2 },
+        { k: 'Walksnail', v: 10, l: 'Rp 10 jt', c: S2 },
+        { k: 'DJI O4', v: 13, l: 'Rp 13 jt', c: S2 }
+      ]);
+    }
+    if (q('ch-bobot')) {
+      barH(q('ch-bobot'), [
+        { k: 'Baterai 6S', v: 260, l: '260 g · 38%', c: S1 },
+        { k: 'Motor (4×)', v: 132, l: '132 g · 19%', c: S1 },
+        { k: 'Frame karbon', v: 120, l: '120 g · 18%', c: S2 },
+        { k: 'Elektronik', v: 89, l: '89 g · 13%', c: S2 },
+        { k: 'Baut & hardware', v: 60, l: '60 g · 9%', c: S4 },
+        { k: 'Propeller (4×)', v: 24, l: '24 g · 3%', c: S4 }
+      ]);
+    }
+    if (q('ch-durasi')) {
+      lineChart(q('ch-durasi'), [
+        { c: S1, v: [5.0, 5.8, 6.4, 6.9, 7.2], label: '7,2 mnt' }
+      ], { x: ['1300', '1500', '1800', '2000', '2200'], ymin: 4, ymax: 8, ticks: [4, 5, 6, 7, 8], unit: '', h: 190 });
+    }
+    if (q('ch-twr')) {
+      lineChart(q('ch-twr'), [
+        { c: S5, v: [7.0, 6.6, 6.1, 5.7, 5.4], label: '5,4 : 1' }
+      ], { x: ['1300', '1500', '1800', '2000', '2200'], ymin: 4, ymax: 8, ticks: [4, 5, 6, 7, 8], unit: '', h: 190 });
+    }
+    if (q('ch-pid')) pidChart(q('ch-pid'));
+    if (q('ch-anggaran')) {
+      barStack(q('ch-anggaran'), [
+        { k: 'Hemat', a: 3.9, b: 4.5, t: 'Rp 8,4 jt', note: 'kompromi' },
+        { k: 'Standar', a: 5.3, b: 7.0, t: 'Rp 12,3 jt', note: '← usulan' },
+        { k: 'Premium', a: 11.0, b: 9.0, t: 'Rp 20 jt', note: 'digital HD' }
+      ]);
+    }
+    if (q('ch-timeline')) gantt(q('ch-timeline'));
+  }
+
+  // mulai dari hash bila ada
+  const m = /slide-(\d+)/.exec(location.hash);
+  render(m ? Math.min(total, Math.max(1, +m[1])) - 1 : 0);
+})();
+</script>
+</body>
+</html>
